@@ -75,6 +75,96 @@ glucose-platform/
 └── pyproject.toml            # Project dependencies
 ```
 
+## DLT Helper Pattern
+
+This project demonstrates the **dedicated helper pattern** for reducing API boilerplate.
+
+### Why Use Helpers?
+
+When you have multiple workflows ingesting from the same API, use a dedicated helper module to:
+
+- Avoid repeating base URL and query parameter logic
+- Ensure consistency across all Nightscout workflows
+- Make it easy to update API configuration in one place
+- Improve code readability and maintainability
+
+### Implementation
+
+**Helper module** (`workflows/ingestion/nightscout/helpers.py`):
+
+```python
+from dlt.sources.rest_api import rest_api
+
+def nightscout_api(
+    resource: str,
+    endpoint_path: str,
+    partition_date: str | None = None,
+    params: dict | None = None,
+):
+    """Helper to create DLT sources for Nightscout API endpoints."""
+    final_params = params or {}
+
+    # Add date range filtering if partition_date is provided
+    if partition_date:
+        start_time_iso = f"{partition_date}T00:00:00.000Z"
+        end_time_iso = f"{partition_date}T23:59:59.999Z"
+        final_params.update({
+            "find[dateString][$gte]": start_time_iso,
+            "find[dateString][$lt]": end_time_iso,
+        })
+
+    return rest_api(
+        client={"base_url": "https://gwp-diabetes.fly.dev/api/v1"},
+        resources=[{
+            "name": resource,
+            "endpoint": {
+                "path": endpoint_path,
+                "params": final_params,
+            },
+        }],
+    )
+```
+
+**Usage in workflows** (`workflows/ingestion/nightscout/readings.py`):
+
+```python
+from phlo_dlt import phlo_ingestion
+from workflows.ingestion.nightscout.helpers import nightscout_api
+from workflows.schemas.nightscout import RawGlucoseEntries
+
+@phlo_ingestion(
+    table_name="glucose_entries",
+    unique_key="_id",
+    validation_schema=RawGlucoseEntries,
+    group="nightscout",
+)
+def glucose_entries(partition_date: str):
+    return nightscout_api(
+        resource="entries",
+        endpoint_path="entries.json",
+        partition_date=partition_date,
+        params={"count": 10000},
+    )
+```
+
+### Benefits
+
+- **Single source of truth**: Base URL and date filtering logic in one place
+- **Consistency**: All workflows use the same Nightscout API configuration
+- **Maintainability**: Updating the API client is a one-line change
+- **Self-documenting**: Helper function signature shows available parameters
+
+### When to Use This Pattern
+
+Use dedicated helpers when you have:
+
+- Multiple workflows for the same API (future: treatments, device status, profile)
+- Shared date filtering or query parameters
+- Common base URL and authentication
+- Consistent data selection logic
+
+See the [Developer Guide](../../phlo/docs/guides/developer-guide.md#dlt-helper-pattern-recommended) for complete documentation on this pattern.
+
 ## Materializing Assets
 
 ```bash

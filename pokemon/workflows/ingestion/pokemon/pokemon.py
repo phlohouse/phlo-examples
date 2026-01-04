@@ -2,7 +2,7 @@
 
 from phlo_dlt import phlo_ingestion
 
-from workflows.ingestion.helpers import pokeapi
+from workflows.ingestion.pokemon.helpers import pokeapi
 from workflows.schemas.pokemon import (
     RawPokemon,
     RawPokemonAbilities,

@@ -78,6 +78,91 @@ github/
 └── pyproject.toml              # Project dependencies
 ```
 
+## DLT Helper Pattern
+
+This project demonstrates the **dedicated helper pattern** for reducing API boilerplate.
+
+### Why Use Helpers?
+
+When you have multiple workflows ingesting from the same API, use a dedicated helper module to:
+
+- Avoid repeating authentication, headers, and pagination logic
+- Ensure consistency across all GitHub workflows
+- Make it easy to update API configuration in one place
+- Improve code readability and maintainability
+
+### Implementation
+
+**Helper module** (`workflows/ingestion/github/helpers.py`):
+
+```python
+import os
+from dlt.sources.rest_api import rest_api
+
+def github_api(resource: str, path: str, params: dict | None = None):
+    """Helper to create DLT sources for GitHub API endpoints."""
+    github_token = os.getenv("GITHUB_TOKEN")
+    github_username = os.getenv("GITHUB_USERNAME", "iamgp")
+
+    return rest_api(
+        client={
+            "base_url": "https://api.github.com",
+            "paginator": "header_link",  # GitHub pagination
+            "headers": {
+                "Authorization": f"Bearer {github_token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+        },
+        resources=[{
+            "name": resource,
+            "endpoint": {
+                "path": path.replace("{username}", github_username),
+                "params": params or {},
+            },
+        }],
+    )
+```
+
+**Usage in workflows** (`workflows/ingestion/github/user_events.py`):
+
+```python
+from phlo_dlt import phlo_ingestion
+from workflows.ingestion.github.helpers import github_api
+from workflows.schemas.github import RawUserEvents
+
+@phlo_ingestion(
+    table_name="user_events",
+    unique_key="id",
+    validation_schema=RawUserEvents,
+    group="github",
+)
+def user_events(partition_date: str):
+    return github_api(
+        resource="events",
+        path="users/{username}/events",
+        params={"per_page": 100},
+    )
+```
+
+### Benefits
+
+- **Single source of truth**: Authentication and pagination logic in one place
+- **Consistency**: All workflows use the same GitHub API configuration
+- **Maintainability**: Updating headers or auth is a one-line change
+- **Self-documenting**: Helper function signature shows available parameters
+
+### When to Use This Pattern
+
+Use dedicated helpers when you have:
+
+- Multiple workflows for the same API (this project has 3: user_profile, user_repos, user_events)
+- Shared authentication or headers
+- Common pagination logic
+- Consistent base URL and parameters
+
+See the [Developer Guide](../../phlo/docs/guides/developer-guide.md#dlt-helper-pattern-recommended) for complete documentation on this pattern.
+
 ### Schema Generation from dbt YAML
 
 > **Pro Tip**: Once you add dbt models, use `dbt_model_to_pandera` to reduce schema duplication.

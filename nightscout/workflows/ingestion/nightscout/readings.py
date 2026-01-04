@@ -5,9 +5,9 @@ Replicates the example from workflows.ingestion.nightscout.glucose
 
 from __future__ import annotations
 
-from dlt.sources.rest_api import rest_api
 from phlo_dlt import phlo_ingestion
 
+from workflows.ingestion.nightscout.helpers import nightscout_api
 from workflows.schemas.nightscout import RawGlucoseEntries
 
 
@@ -48,24 +48,9 @@ def glucose_entries(partition_date: str):
     Returns:
         DLT resource for glucose entries, or None if no data
     """
-    start_time_iso = f"{partition_date}T00:00:00.000Z"
-    end_time_iso = f"{partition_date}T23:59:59.999Z"
-
-    return rest_api(
-        client={
-            "base_url": "https://gwp-diabetes.fly.dev/api/v1",
-        },
-        resources=[
-            {
-                "name": "entries",
-                "endpoint": {
-                    "path": "entries.json",
-                    "params": {
-                        "count": 10000,
-                        "find[dateString][$gte]": start_time_iso,
-                        "find[dateString][$lt]": end_time_iso,
-                    },
-                },
-            }
-        ],
+    return nightscout_api(
+        resource="entries",
+        endpoint_path="entries.json",
+        partition_date=partition_date,
+        params={"count": 10000},
     )
