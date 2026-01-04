@@ -78,6 +78,31 @@ github/
 └── pyproject.toml              # Project dependencies
 ```
 
+### Schema Generation from dbt YAML
+
+> **Pro Tip**: Once you add dbt models, use `dbt_model_to_pandera` to reduce schema duplication.
+>
+> Instead of manually writing both dbt schema tests AND Pandera schemas, define the schema once in dbt YAML and auto-generate the Pandera schema:
+>
+> ```python
+> # workflows/schemas/github.py
+> from phlo_dbt.dbt_schema import dbt_model_to_pandera
+>
+> # If you create a dbt model for cleaned GitHub events:
+> FactGitHubEvents = dbt_model_to_pandera(
+>     "workflows/transforms/dbt/models/silver/fct_github_events.yml",
+>     "fct_github_events"
+> )
+> ```
+>
+> **Benefits**:
+> - Single source of truth (dbt YAML)
+> - 50% less code to maintain
+> - No schema drift between dbt and Pandera
+> - dbt `data_tests` automatically become Pandera Field constraints
+>
+> See the [nightscout example](../nightscout/workflows/schemas/nightscout.py) for a production implementation and the [Developer Guide](../../phlo/docs/guides/developer-guide.md#approach-2-generate-schemas-from-dbt-yaml) for complete documentation.
+
 ## Data Flow
 
 1. **Ingestion**: Three GitHub data sources with different strategies

@@ -288,6 +288,35 @@ def glucose_quality():
 
 See `workflows/quality/nightscout.py` for the full implementation using Pandera schemas
 
+### Schema Generation from dbt YAML
+
+> **Key Feature**: This project demonstrates `dbt_model_to_pandera` to reduce schema duplication by 50%.
+>
+> Instead of maintaining separate schemas in dbt YAML and Pandera classes, we define the schema once in dbt and auto-generate the Pandera schema:
+>
+> ```python
+> # workflows/schemas/nightscout.py
+> from phlo_dbt.dbt_schema import dbt_model_to_pandera
+>
+> # Single source of truth: dbt YAML defines the schema
+> FactGlucoseReadings = dbt_model_to_pandera(
+>     "workflows/transforms/dbt/models/silver/fct_glucose_readings.yml",
+>     "fct_glucose_readings"
+> )
+> ```
+>
+> **Benefits**:
+> - Define schema once (in dbt YAML)
+> - No schema drift between dbt and Pandera
+> - dbt `data_tests` automatically become Pandera Field constraints
+> - 50% less code to maintain
+>
+> **Implementation files**:
+> - dbt schema: `workflows/transforms/dbt/models/silver/fct_glucose_readings.yml`
+> - Generated Pandera: `workflows/schemas/nightscout.py` (line 63)
+>
+> See the [Developer Guide](../../phlo/docs/guides/developer-guide.md#approach-2-generate-schemas-from-dbt-yaml) for complete documentation.
+
 ## API Access
 
 The glucose platform exposes data through REST and GraphQL APIs using automatically generated views from dbt marts.
