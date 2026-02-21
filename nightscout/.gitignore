@@ -23,12 +23,20 @@ htmlcov/
 .phlo/dagster/.logs_queue/
 .phlo/dagster/.telemetry/
 .phlo/dagster/.nux/
+.phlo/dagster/.phlo/
 .phlo/dagster/logs/
+.phlo/logs/
+.phlo/trino/config.properties
+.phlo/trino/jvm.config
 
 # dbt user config
+transforms/dbt/profiles/.user.yml
 workflows/transforms/dbt/profiles/.user.yml
 
 # dbt
+transforms/dbt/target/
+transforms/dbt/dbt_packages/
+transforms/dbt/logs/
 workflows/transforms/dbt/target/
 workflows/transforms/dbt/dbt_packages/
 workflows/transforms/dbt/logs/
@@ -42,3 +50,6 @@ workflows/transforms/dbt/logs/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Local run logs
+.tmp/

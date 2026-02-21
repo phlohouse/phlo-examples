@@ -15,8 +15,8 @@ from workflows.schemas.github import RawUserEvents
     group="github",
     cron="0 */6 * * *",
     freshness_hours=(6, 24),
-    merge_strategy="append",
-    merge_config={"deduplication": True, "deduplication_method": "hash"},
+    merge_strategy="merge",
+    merge_config={"deduplication_method": "last"},
 )
 def user_events(partition_date: str):
     return github_api(

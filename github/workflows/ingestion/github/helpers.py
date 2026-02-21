@@ -35,17 +35,20 @@ def github_api(
     # Replace {username} placeholder if present
     final_path = path.replace("{username}", github_username)
 
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    if github_token:
+        headers["Authorization"] = f"Bearer {github_token}"
+
     return rest_api(
         client={
             "base_url": "https://api.github.com",
             # GitHub paginates most collection endpoints using the `Link` header.
             # Without this, we only fetch the first page (often 30/100 items).
             "paginator": "header_link",
-            "headers": {
-                "Authorization": f"Bearer {github_token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
+            "headers": headers,
         },
         resources=[
             {

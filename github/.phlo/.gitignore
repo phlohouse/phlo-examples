@@ -1,5 +1,6 @@
 # Phlo infrastructure files
 .env
+.env.local
 volumes/
 
 # Dagster runtime data

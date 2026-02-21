@@ -31,14 +31,11 @@ def user_repos(partition_date: str):
     """
     return github_api(
         resource="repos",
-        # Use the authenticated endpoint so we get all accessible repos (owner, org, collaborator),
-        # not just the public repos for a username.
-        path="user/repos",
+        path="users/{username}/repos",
         params={
             "per_page": 100,
             "sort": "updated",
             "direction": "desc",
-            "visibility": "all",
-            "affiliation": "owner,collaborator,organization_member",
+            "type": "owner",
         },
     )

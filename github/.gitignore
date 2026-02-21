@@ -23,11 +23,22 @@ htmlcov/
 # Runtime data and volumes
 .phlo/volumes/
 .phlo/docker-compose.yml.bak
+.phlo/logs/
+.phlo/dagster/.phlo/
+.phlo/dagster/.telemetry/
+.phlo/dagster/.nux/
+.phlo/dagster/logs/
+.phlo/trino/config.properties
+.phlo/trino/jvm.config
+.phlo/trino/catalog/iceberg_dev.properties
 
 # dbt artifacts
 workflows/transforms/dbt/target/
 workflows/transforms/dbt/logs/
 workflows/transforms/dbt/dbt_packages/
+
+# Local run logs
+.tmp/
 
 # Temporary/working files
 WORKING.md
