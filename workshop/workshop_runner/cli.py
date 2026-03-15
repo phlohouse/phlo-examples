@@ -17,9 +17,11 @@ CHAPTERS_DIR = WORKSHOP_DIR / "chapters"
 def build_parser() -> argparse.ArgumentParser:
     """Create argument parser."""
     parser = argparse.ArgumentParser(description="Run workshop chapters declaratively")
-    parser.add_argument("--act", type=int, choices=[1, 2, 3, 4], help="Run only this act")
+    parser.add_argument("--act", type=int, choices=[0, 1, 2, 3, 4], help="Run only this act")
     parser.add_argument("--chapter", type=str, help="Run only this chapter (directory name)")
     parser.add_argument("--no-setup", action="store_true", help="Skip service setup")
+    parser.add_argument("--clean", action="store_true", help="Reset services before the run")
+    parser.add_argument("--sync", action="store_true", help="Refresh the workshop environment first")
     parser.add_argument("--teardown", action="store_true", help="Tear down services after run")
     return parser
 
@@ -46,17 +48,21 @@ def main(argv: list[str] | None = None) -> int:
         requested_profiles=normalized_profiles(chapters),
     )
 
-    try:
-        runner.prepare_environment()
-    except RuntimeError as exc:
-        console.print(f"[red]Environment preparation failed:[/red] {exc}")
-        return 1
+    if args.sync:
+        try:
+            runner.prepare_environment()
+        except RuntimeError as exc:
+            console.print(f"[red]Environment preparation failed:[/red] {exc}")
+            return 1
 
     if args.no_setup:
         console.print("  [dim]reusing existing services (--no-setup)[/dim]")
-    else:
+    elif args.clean or any(chapter.slug == "00-workshop-warmup" for chapter in chapters):
         console.print("  [dim]resetting services for a clean validation run...[/dim]")
         runner.services.teardown()
+    else:
+        console.print("  [dim]running additively; existing services/state are preserved[/dim]")
+        runner.services.detect_existing_runtime()
 
     first_selected_index = min(all_chapters.index(chapter) for chapter in chapters)
     prerequisite_chapters = all_chapters[:first_selected_index]

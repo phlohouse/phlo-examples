@@ -1,14 +1,17 @@
-"""Pokemon ingestion assets."""
+"""Pokemon ingestion assets with contracts."""
 
 from phlo_dlt import phlo_ingestion
 from workflows.ingestion.helpers import pokeapi
 from workflows.schemas.pokemon import RawPokemon, RawPokemonTypes
+from contracts.pokemon import pokemon_consumer, pokemon_sla
 
 
 @phlo_ingestion(
     table_name="pokemon",
     unique_key="name",
     validation_schema=RawPokemon,
+    consumers=[pokemon_consumer],
+    sla=pokemon_sla,
     group="pokemon",
     cron="0 0 * * 0",
     freshness_hours=(168, 336),

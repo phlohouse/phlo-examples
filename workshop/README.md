@@ -53,6 +53,20 @@ phlo services start
 Services take ~60 seconds to come up. Dagster UI will be available at
 `http://localhost:10006`.
 
+For the standalone runner, do the expensive setup once in chapter 0:
+
+```bash
+uv run workshop-runner --chapter 00-workshop-warmup --clean --sync
+```
+
+After that, run later chapters additively without resetting the stack:
+
+```bash
+uv run workshop-runner --chapter 01-ingest-pokemon
+uv run workshop-runner --chapter 02-validate-your-data
+uv run workshop-runner --act 2
+```
+
 ## Chapter Overview
 
 ### Act I — Build a Pipeline
@@ -77,9 +91,10 @@ Services take ~60 seconds to come up. Dagster UI will be available at
 
 | Ch | Title                | Packages                                                           | Time   |
 | -- | -------------------- | ------------------------------------------------------------------ | ------ |
+| 00 | Workshop Warmup      | base services, Dagster build cache, observability warmup           | ~10 min |
 | 09 | Tracing & Metrics    | `phlo-otel`, `phlo-clickstack`                                     | ~15 min |
 | 10 | Logs & Dashboards    | `phlo-loki`, `phlo-alloy`, `phlo-prometheus`, `phlo-grafana`       | ~15 min |
-| 11 | Lineage              | `phlo-lineage`, `phlo-observatory`                                 | ~10 min |
+| 11 | Lineage              | `phlo-lineage`                                                     | ~10 min |
 | 12 | Data Catalog         | `phlo-openmetadata`                                                | ~15 min |
 
 ### Act IV — Extend & Scale
@@ -100,6 +115,12 @@ Run every chapter's checks in one shot:
 
 ```bash
 uv run workshop-runner
+```
+
+Run a deterministic clean pass:
+
+```bash
+uv run workshop-runner --clean --sync
 ```
 
 Compatibility shim:

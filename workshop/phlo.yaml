@@ -1,10 +1,8 @@
 name: pokemon-workshop
-description: "Interactive Phlo workshop — build a Pokemon lakehouse step by step"
-
+description: "Interactive Phlo workshop \u2014 build a Pokemon lakehouse step by step"
 capabilities:
   defaults:
     table_store: iceberg
-
 env:
   CLICKSTACK_PORT: 8123
   CLICKSTACK_NATIVE_PORT: 19000
@@ -12,14 +10,22 @@ env:
   HASURA_PORT: 8888
   LOKI_PORT: 3200
   OBSERVATORY_PORT: 5173
-  OPENMETADATA_ES_JAVA_OPTS: "-Xms128m -Xmx128m"
-  OPENMETADATA_HEAP_OPTS: "-Xms256m -Xmx256m"
+  OPENMETADATA_ES_JAVA_OPTS: -Xms128m -Xmx128m
+  OPENMETADATA_HEAP_OPTS: -Xms256m -Xmx256m
   PGWEB_PORT: 10008
+  PHLO_OBJECT_STORE: minio
   PHLO_API_PORT: 8000
   POSTGREST_PORT: 3001
-
 services:
   observatory:
     enabled: false
   superset:
     enabled: false
+  enabled:
+  - hasura
+  - observatory
+  - phlo-api
+  - postgrest
+  - superset
+  - traefik
+  disabled: []

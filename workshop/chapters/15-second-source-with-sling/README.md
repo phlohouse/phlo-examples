@@ -46,6 +46,7 @@ from phlo_sling import phlo_sling_replication
     stream_name="data/pokemon_cards.csv",
     table_name="pokemon_cards",
     source_conn="file://",
+    target_conn="PHLO_ICEBERG",
     group="pokemon",
     mode="full-refresh",
 )
@@ -61,6 +62,7 @@ Decorator parameters explained:
 | `stream_name` | Path to the source file |
 | `table_name` | Target Iceberg table in the `raw` schema |
 | `source_conn` | Sling connection string (`file://` for local files) |
+| `target_conn` | Sling destination connection (`PHLO_ICEBERG` for the workshop Iceberg catalog) |
 | `group` | Logical grouping in the Dagster UI |
 | `mode` | `"full-refresh"` replaces the table each run |
 
@@ -96,7 +98,27 @@ You should see ~85 rows with `set_name`, `card_name`, `set_number`, and `price_g
 
 Type `quit` to exit.
 
-## Step 5: Join with Pokemon Data
+## Step 5: Register the New Raw Source
+
+Update `workflows/transforms/dbt/models/sources.yml` so dbt can read the Sling-ingested table:
+
+```yaml
+version: 2
+
+sources:
+  - name: dagster_assets
+    database: "{{ target.catalog }}"
+    schema: raw
+    tables:
+      - name: pokemon
+        description: Raw Pokemon data from PokeAPI
+      - name: pokemon_types
+        description: Raw Pokemon types from PokeAPI
+      - name: pokemon_cards
+        description: Raw Pokemon trading card prices from Sling
+```
+
+## Step 6: Join with Pokemon Data
 
 Now build a dbt model that joins card prices with the Pokemon dimension from Chapter 03.
 
@@ -141,7 +163,7 @@ This model:
 2. Joins with `dim_pokemon` (from DLT ingestion + dbt transform).
 3. Produces a gold-layer fact table ordered by card value.
 
-## Step 6: Run dbt
+## Step 7: Run dbt
 
 Compile and run the model:
 
@@ -161,7 +183,7 @@ FROM fct_card_values
 LIMIT 10;
 ```
 
-## Step 7: Check Your Work
+## Step 8: Check Your Work
 
 Run the checkpoint script:
 

@@ -111,6 +111,7 @@ class WorkshopRunner:
                 "  [yellow]⚠ commands failed (exploration-only, checking anyway)[/yellow]"
             )
 
+        self.services.ensure_runtime_ready(profiles=chapter.profiles)
         check_ok, check_output = self.run_check(chapter)
         if check_output and check_output != "no check.py":
             for line in check_output.split("\n"):

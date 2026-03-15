@@ -1,0 +1,10 @@
+title: Workshop Warmup
+act: 0
+profiles: [observability]
+bootstrap_chapters:
+  - 01-ingest-pokemon
+  - 03-transform-with-dbt
+commands:
+  - phlo materialize dlt_pokemon -p 2025-01-01
+  - phlo materialize dlt_pokemon_types -p 2025-01-01
+  - phlo dbt run --select "stg_pokemon stg_pokemon_types dim_types dim_pokemon fct_pokemon_by_generation"
