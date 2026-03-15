@@ -59,7 +59,7 @@ def filter_chapters(
     """Filter loaded chapters."""
     if chapter:
         return [item for item in chapters if item.slug == chapter]
-    if act:
+    if act is not None:
         return [item for item in chapters if item.act == act]
     return chapters
 
