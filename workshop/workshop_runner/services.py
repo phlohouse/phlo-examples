@@ -25,6 +25,15 @@ CORE_HTTP_READINESS_CHECKS = (
     ("Nessie", "http://localhost:19120/api/v1/config"),
     ("MinIO", "http://localhost:9000/minio/health/live"),
 )
+_DAGSTER_WORKSPACE_QUERY = {
+    "query": (
+        "{ workspaceOrError { __typename "
+        "... on Workspace { locationEntries { name loadStatus locationOrLoadError { __typename "
+        "... on RepositoryLocation { name repositories { name } } "
+        "... on PythonError { message } } } } "
+        "... on PythonError { message } } }"
+    )
+}
 PROFILE_SERVICE_MARKERS = {
     "observability": ("clickstack", "grafana", "prometheus", "loki", "alloy"),
     "openmetadata": ("openmetadata", "openmetadata-elasticsearch", "openmetadata-mysql"),
@@ -348,6 +357,10 @@ class ServiceManager:
             TrinoResource(host="localhost").wait_ready(timeout=45.0, interval=1.0)
         except Exception as exc:
             last_errors["Trino"] = str(exc)
+        try:
+            self._wait_for_dagster_readiness()
+        except Exception as exc:
+            last_errors["Dagster"] = str(exc)
 
         pending = {name: url for name, url in CORE_HTTP_READINESS_CHECKS}
         while time.monotonic() < deadline and pending:
@@ -362,14 +375,48 @@ class ServiceManager:
                     last_errors[name] = str(exc)
             if pending:
                 time.sleep(3)
-        if "Trino" in last_errors or pending:
-            names = ["Trino", *pending]
+        if "Trino" in last_errors or "Dagster" in last_errors or pending:
+            names = ["Trino", "Dagster", *pending]
             details = ", ".join(
                 f"{name}: {last_errors.get(name, 'timed out')}"
                 for index, name in enumerate(names)
                 if name not in names[:index]
             )
             raise RuntimeError(f"Core services did not become ready: {details}")
+
+    def _wait_for_dagster_readiness(self) -> None:
+        """Wait for Dagster webserver and code location loading."""
+        deadline = time.monotonic() + 180
+        last_error = "timed out"
+        while time.monotonic() < deadline:
+            try:
+                response = httpx.post(
+                    "http://localhost:3000/graphql",
+                    json=_DAGSTER_WORKSPACE_QUERY,
+                    timeout=10,
+                )
+                response.raise_for_status()
+                payload = response.json()
+                workspace = payload.get("data", {}).get("workspaceOrError", {})
+                if workspace.get("__typename") != "Workspace":
+                    last_error = workspace.get("message", "workspace unavailable")
+                    time.sleep(3)
+                    continue
+                locations = workspace.get("locationEntries", [])
+                if not locations:
+                    last_error = "no Dagster code locations loaded"
+                    time.sleep(3)
+                    continue
+                if all(location.get("loadStatus") == "LOADED" for location in locations):
+                    return
+                last_error = ", ".join(
+                    f"{location.get('name', 'unknown')}: {location.get('loadStatus', 'unknown')}"
+                    for location in locations
+                )
+            except Exception as exc:
+                last_error = str(exc)
+            time.sleep(3)
+        raise RuntimeError(f"Dagster did not become ready: {last_error}")
 
     def _wait_for_service_readiness(self, service: str) -> None:
         """Wait for service-specific readiness when chapter checks depend on it."""

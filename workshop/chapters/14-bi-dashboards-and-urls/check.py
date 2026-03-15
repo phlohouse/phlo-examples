@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Chapter 14 checkpoint: verify Superset and Traefik are running."""
 
-import subprocess
 import sys
 
 import httpx
@@ -24,18 +23,18 @@ def check_superset() -> bool:
 
 
 def check_traefik() -> bool:
-    """Check Traefik container is running."""
+    """Check Traefik is serving the default route."""
     try:
-        result = subprocess.run(
-            ["docker", "compose", "-p", "pokemon-workshop", "-f", ".phlo/docker-compose.yml",
-            "ps", "traefik", "--format", "{{.State}}"],
-            capture_output=True, text=True, timeout=10,
+        resp = httpx.get(
+            "http://localhost",
+            headers={"Host": "traefik.phlo.localhost"},
+            timeout=10,
+            follow_redirects=True,
         )
-        state = result.stdout.strip().lower()
-        if result.returncode == 0 and state in {"running", "healthy"}:
-            print(f"  \033[32m✓\033[0m Traefik is running ({state})")
+        if resp.status_code < 500:
+            print("  \033[32m✓\033[0m Traefik is serving requests")
             return True
-        print("  \033[31m✗\033[0m Traefik container is not running")
+        print(f"  \033[31m✗\033[0m Traefik returned status {resp.status_code}")
         return False
     except Exception as e:
         print(f"  \033[31m✗\033[0m Traefik check failed: {e}")

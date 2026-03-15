@@ -59,12 +59,13 @@ For the standalone runner, do the expensive setup once in chapter 0:
 uv run workshop-runner --chapter 00-workshop-warmup --clean --sync
 ```
 
-After that, run later chapters additively without resetting the stack:
+After that, run later chapters additively without resetting the stack or re-syncing
+the environment each time:
 
 ```bash
-uv run workshop-runner --chapter 01-ingest-pokemon
-uv run workshop-runner --chapter 02-validate-your-data
-uv run workshop-runner --act 2
+uv run --no-sync workshop-runner --chapter 01-ingest-pokemon
+uv run --no-sync workshop-runner --chapter 02-validate-your-data
+uv run --no-sync workshop-runner --act 2
 ```
 
 ## Chapter Overview
@@ -114,7 +115,7 @@ once its services are running).
 Run every chapter's checks in one shot:
 
 ```bash
-uv run workshop-runner
+uv run --no-sync workshop-runner
 ```
 
 Run a deterministic clean pass:
@@ -126,7 +127,7 @@ uv run workshop-runner --clean --sync
 Compatibility shim:
 
 ```bash
-uv run python validate_all.py
+uv run --no-sync python validate_all.py
 ```
 
 This executes each `check.py` in order and prints a summary:

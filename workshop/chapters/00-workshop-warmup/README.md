@@ -18,9 +18,9 @@ uv run workshop-runner --chapter 00-workshop-warmup --clean --sync
 After that, run later chapters additively:
 
 ```bash
-uv run workshop-runner --chapter 01-ingest-pokemon
-uv run workshop-runner --chapter 02-validate-your-data
-uv run workshop-runner --chapter 11-lineage
+uv run --no-sync workshop-runner --chapter 01-ingest-pokemon
+uv run --no-sync workshop-runner --chapter 02-validate-your-data
+uv run --no-sync workshop-runner --chapter 11-lineage
 ```
 
 OpenMetadata and Observatory are intentionally out of scope for this warmup path.

@@ -36,6 +36,7 @@ Create `plugins/pokemon_stats.py`:
 """Pokemon stats CLI plugin."""
 
 import subprocess
+import sys
 
 import click
 
@@ -69,11 +70,10 @@ In the same file, define a Click group with a `stats` subcommand:
 
 ```python
 def _query_trino(sql: str) -> str:
-    """Run a SQL query against Trino via docker compose exec."""
+    """Run a SQL query against Trino via the Phlo CLI."""
     result = subprocess.run(
         [
-            "docker", "compose", "-p", "pokemon-workshop", "-f", ".phlo/docker-compose.yml",
-            "exec", "-T", "trino", "trino", "--execute", sql,
+            sys.executable, "-m", "phlo.cli.main", "trino", "query", sql,
             "--catalog", "iceberg", "--schema", "raw", "--output-format", "CSV",
         ],
         capture_output=True, text=True, timeout=30,
@@ -114,7 +114,7 @@ pokemon-stats = "plugins.pokemon_stats:PokemonStatsPlugin"
 ### Step 4: Install and Run
 
 ```bash
-uv pip install -e .
+uv sync --all-extras
 phlo pokemon stats
 ```
 
