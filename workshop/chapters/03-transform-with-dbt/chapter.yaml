@@ -1,0 +1,4 @@
+title: Transform with dbt
+act: 1
+commands:
+  - phlo dbt run --select "stg_pokemon stg_pokemon_types dim_types dim_pokemon fct_pokemon_by_generation"

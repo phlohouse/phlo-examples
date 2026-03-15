@@ -1,0 +1,6 @@
+title: Schema Evolution
+act: 2
+commands:
+  - phlo schema-migrate diff raw.pokemon
+  - phlo schema-migrate apply raw.pokemon --yes
+  - phlo materialize dlt_pokemon -p 2025-01-01
