@@ -1,0 +1,105 @@
+[project]
+name = "pokemon-workshop"
+version = "0.1.0"
+description = "Interactive Phlo workshop — build a Pokemon lakehouse step by step"
+requires-python = ">=3.11"
+dependencies = [
+    "phlo",
+    "phlo-core-plugins",
+    "phlo-dagster",
+    "phlo-dlt",
+    "phlo-dbt",
+    "phlo-iceberg",
+    "phlo-lineage",
+    "phlo-nessie",
+    "phlo-trino",
+    "phlo-postgres",
+    "phlo-pgweb",
+    "phlo-minio",
+    "phlo-pandera",
+    "phlo-observatory",
+    "phlo-superset",
+    "dbt-trino>=1.10.0",
+]
+
+[project.scripts]
+workshop-runner = "workshop_runner.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["workshop_runner", "plugins"]
+
+[project.optional-dependencies]
+observability = [
+    "phlo-otel",
+    "phlo-clickstack",
+    "phlo-grafana",
+    "phlo-prometheus",
+    "phlo-loki",
+    "phlo-alloy",
+]
+catalog = [
+    "phlo-openmetadata",
+]
+api = [
+    "phlo-postgrest",
+    "phlo-hasura",
+    "phlo-api",
+]
+proxy = [
+    "phlo-traefik",
+]
+sling = [
+    "phlo-sling",
+]
+delta = [
+    "phlo-delta",
+    "phlo-rustfs",
+]
+testing = [
+    "phlo-testing",
+]
+all = [
+    "pokemon-workshop[observability,catalog,api,proxy,sling,delta,testing]",
+]
+
+[project.entry-points."phlo.plugins.cli"]
+pokemon-stats = "plugins.pokemon_stats:PokemonStatsPlugin"
+
+[tool.uv.sources]
+phlo = { path = "../../phlo", editable = true }
+phlo-core-plugins = { path = "../../phlo/packages/phlo-core-plugins", editable = true }
+phlo-dagster = { path = "../../phlo/packages/phlo-dagster", editable = true }
+phlo-dlt = { path = "../../phlo/packages/phlo-dlt", editable = true }
+phlo-dbt = { path = "../../phlo/packages/phlo-dbt", editable = true }
+phlo-iceberg = { path = "../../phlo/packages/phlo-iceberg", editable = true }
+phlo-lineage = { path = "../../phlo/packages/phlo-lineage", editable = true }
+phlo-nessie = { path = "../../phlo/packages/phlo-nessie", editable = true }
+phlo-trino = { path = "../../phlo/packages/phlo-trino", editable = true }
+phlo-postgres = { path = "../../phlo/packages/phlo-postgres", editable = true }
+phlo-pgweb = { path = "../../phlo/packages/phlo-pgweb", editable = true }
+phlo-minio = { path = "../../phlo/packages/phlo-minio", editable = true }
+phlo-pandera = { path = "../../phlo/packages/phlo-pandera", editable = true }
+phlo-observatory = { path = "../../phlo/packages/phlo-observatory", editable = true }
+phlo-superset = { path = "../../phlo/packages/phlo-superset", editable = true }
+phlo-otel = { path = "../../phlo/packages/phlo-otel", editable = true }
+phlo-clickstack = { path = "../../phlo/packages/phlo-clickstack", editable = true }
+phlo-grafana = { path = "../../phlo/packages/phlo-grafana", editable = true }
+phlo-prometheus = { path = "../../phlo/packages/phlo-prometheus", editable = true }
+phlo-loki = { path = "../../phlo/packages/phlo-loki", editable = true }
+phlo-alloy = { path = "../../phlo/packages/phlo-alloy", editable = true }
+phlo-openmetadata = { path = "../../phlo/packages/phlo-openmetadata", editable = true }
+phlo-postgrest = { path = "../../phlo/packages/phlo-postgrest", editable = true }
+phlo-hasura = { path = "../../phlo/packages/phlo-hasura", editable = true }
+phlo-api = { path = "../../phlo/packages/phlo-api", editable = true }
+phlo-traefik = { path = "../../phlo/packages/phlo-traefik", editable = true }
+phlo-sling = { path = "../../phlo/packages/phlo-sling", editable = true }
+phlo-delta = { path = "../../phlo/packages/phlo-delta", editable = true }
+phlo-rustfs = { path = "../../phlo/packages/phlo-rustfs", editable = true }
+phlo-testing = { path = "../../phlo/packages/phlo-testing", editable = true }

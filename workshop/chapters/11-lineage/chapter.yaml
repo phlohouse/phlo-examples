@@ -1,0 +1,8 @@
+title: Lineage
+act: 3
+bootstrap_chapters:
+  - 01-ingest-pokemon
+  - 03-transform-with-dbt
+commands:
+  - phlo materialize dlt_pokemon -p 2025-01-01
+  - phlo materialize dim_pokemon -p 2025-01-01

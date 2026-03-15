@@ -1,0 +1,21 @@
+name: "workshop_transforms"
+version: "1.0.0"
+
+profile: "workshop_transforms"
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  workshop_transforms:
+    gold:
+      fct_card_values:
+        +enabled: true

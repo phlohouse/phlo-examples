@@ -1,0 +1,6 @@
+title: Data Catalog
+act: 3
+bootstrap_chapters:
+  - 01-ingest-pokemon
+  - 03-transform-with-dbt
+profiles: [openmetadata]
