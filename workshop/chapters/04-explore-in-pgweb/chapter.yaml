@@ -1,0 +1,4 @@
+title: Explore in PgWeb
+act: 1
+commands:
+  - phlo dbt run --select tag:publish

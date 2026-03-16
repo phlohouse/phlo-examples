@@ -1,0 +1,5 @@
+title: Validate Your Data
+act: 1
+profiles: [core, query]
+commands:
+  - phlo materialize dlt_pokemon -p 2025-01-01

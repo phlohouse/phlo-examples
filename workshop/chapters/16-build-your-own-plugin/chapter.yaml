@@ -1,0 +1,5 @@
+title: Build Your Own Plugin
+act: 4
+profiles: [core, query]
+commands:
+  - phlo pokemon stats

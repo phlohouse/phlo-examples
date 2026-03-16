@@ -68,6 +68,12 @@ uv run --no-sync workshop-runner --chapter 02-validate-your-data
 uv run --no-sync workshop-runner --act 2
 ```
 
+When you are done, stop the workshop stack directly:
+
+```bash
+uv run --no-sync workshop-runner stop
+```
+
 ## Chapter Overview
 
 ### Act I — Build a Pipeline

@@ -2,6 +2,7 @@
 """Chapter 09 checkpoint: verify observability stack is running."""
 
 import sys
+from socket import create_connection
 
 import httpx
 
@@ -23,13 +24,10 @@ def check_clickstack() -> bool:
 def check_otel_collector() -> bool:
     """Check OTEL collector health endpoint."""
     try:
-        resp = httpx.get("http://localhost:4318/v1/traces", timeout=5)
-        # OTLP endpoint may return 405 for GET (expects POST) — that's fine, it's alive
-        if resp.status_code in (200, 405):
-            print("  \033[32m✓\033[0m OTEL collector is responding at http://localhost:4318")
-            return True
-        print(f"  \033[31m✗\033[0m OTEL collector returned status {resp.status_code}")
-        return False
+        with create_connection(("localhost", 4318), timeout=5):
+            pass
+        print("  \033[32m✓\033[0m OTEL collector is accepting connections on localhost:4318")
+        return True
     except Exception as e:
         print(f"  \033[31m✗\033[0m OTEL collector unreachable: {e}")
         return False

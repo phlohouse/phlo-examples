@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: dagster_assets
+    database: "{{ target.catalog }}"
+    schema: raw
+    tables:
+      # TODO: Add your raw tables as sources
+      # Hint: you created "pokemon" and "pokemon_types" in Chapter 01

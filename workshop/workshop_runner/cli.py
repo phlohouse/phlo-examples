@@ -17,6 +17,13 @@ CHAPTERS_DIR = WORKSHOP_DIR / "chapters"
 def build_parser() -> argparse.ArgumentParser:
     """Create argument parser."""
     parser = argparse.ArgumentParser(description="Run workshop chapters declaratively")
+    parser.add_argument(
+        "command",
+        nargs="?",
+        choices=("run", "stop"),
+        default="run",
+        help="Runner command (default: run)",
+    )
     parser.add_argument("--act", type=int, choices=[0, 1, 2, 3, 4], help="Run only this act")
     parser.add_argument("--chapter", type=str, help="Run only this chapter (directory name)")
     parser.add_argument("--no-setup", action="store_true", help="Skip service setup")
@@ -31,6 +38,16 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     console = Console()
+
+    runner = WorkshopRunner(
+        WORKSHOP_DIR,
+        console=console,
+        requested_profiles=(),
+    )
+    if args.command == "stop":
+        console.print("  [dim]stopping workshop services...[/dim]")
+        runner.services.teardown()
+        return 0
 
     all_chapters = discover_chapters(CHAPTERS_DIR)
     chapters = filter_chapters(

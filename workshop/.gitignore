@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.tmp/
+*.pyc
+.DS_Store
+.ruff_cache/
+uv.lock
+workflows/transforms/dbt/logs/
+workflows/transforms/dbt/dbt_packages/
+workflows/transforms/dbt/target/
+workflows/transforms/dbt/profiles/.user.yml
