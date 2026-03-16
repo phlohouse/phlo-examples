@@ -1,0 +1,6 @@
+title: Tracing & Metrics
+act: 3
+profiles: [core, query, observability]
+commands:
+  - phlo services start --profile observability
+  - phlo materialize dlt_pokemon -p 2025-01-01
