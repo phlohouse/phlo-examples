@@ -41,7 +41,11 @@ def discover_chapters(chapters_dir: Path) -> list[ChapterManifest]:
                 slug=chapter_dir.name,
                 directory=chapter_dir,
                 commands=tuple(data.get("commands", [])),
-                profiles=tuple(data.get("profiles", [])),
+                profiles=tuple(
+                    profile
+                    for profile in data.get("profiles", [])
+                    if profile not in LEGACY_BASE_PROFILES
+                ),
                 services=tuple(data.get("services", [])),
                 bootstrap_chapters=tuple(data.get("bootstrap_chapters", [])),
                 has_solution=(chapter_dir / "solution").is_dir(),

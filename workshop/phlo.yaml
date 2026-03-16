@@ -22,10 +22,16 @@ services:
   superset:
     enabled: false
   enabled:
+  - alloy
+  - clickstack
+  - grafana
   - hasura
+  - loki
   - observatory
   - phlo-api
+  - postgres-exporter
   - postgrest
+  - prometheus
   - superset
   - traefik
   disabled: []

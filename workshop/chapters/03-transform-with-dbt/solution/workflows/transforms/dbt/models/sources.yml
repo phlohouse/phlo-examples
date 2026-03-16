@@ -9,3 +9,5 @@ sources:
         description: Raw Pokemon data from PokeAPI
       - name: pokemon_types
         description: Raw Pokemon types from PokeAPI
+      - name: pokemon_cards
+        description: Raw Pokemon trading card prices from Sling

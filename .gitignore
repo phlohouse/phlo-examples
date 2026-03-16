@@ -21,6 +21,7 @@
 
 # Local environments and caches
 .claude/
+pokemon-clickstack/
 */.venv/
 */__pycache__/
 */.tmp/

@@ -1,4 +1,4 @@
-"""Pokemon Pandera schemas — evolved with habitat field."""
+"""Pokemon Pandera schemas."""
 
 from pandera.pandas import Field
 from phlo_pandera.schemas import PhloSchema
@@ -9,7 +9,6 @@ class RawPokemon(PhloSchema):
 
     name: str = Field(description="Pokemon name")
     url: str = Field(description="API URL for full details")
-    habitat: str = Field(nullable=True, description="Pokemon habitat")
 
 
 class RawPokemonTypes(PhloSchema):

@@ -13,9 +13,3 @@ snapshot-paths: ["snapshots"]
 clean-targets:
   - "target"
   - "dbt_packages"
-
-models:
-  workshop_transforms:
-    gold:
-      fct_card_values:
-        +enabled: true

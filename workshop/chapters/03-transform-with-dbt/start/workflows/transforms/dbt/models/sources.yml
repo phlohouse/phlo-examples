@@ -7,3 +7,5 @@ sources:
     tables:
       # TODO: Add your raw tables as sources
       # Hint: you created "pokemon" and "pokemon_types" in Chapter 01
+      - name: pokemon_cards
+        description: Raw Pokemon trading card prices from Sling
