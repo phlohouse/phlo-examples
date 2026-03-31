@@ -1,6 +1,6 @@
 # Chapter 07 — Branch Your Data
 
-**What you'll learn:** Git-like data versioning with Nessie — create branches, make changes in isolation, diff, and merge.
+**What you'll learn:** How Phlo's orchestrator uses Nessie branches automatically for safe data updates, and how to explore those branches via CLI and Dagster UI.
 
 **Time:** ~15 minutes
 
@@ -15,44 +15,75 @@
 
 ## Background
 
-Nessie is a git-like catalog for your data lakehouse. Just as Git lets you branch code, Nessie lets you branch *data*:
+Nessie is a git-like catalog for your data lakehouse. Just as Git lets you branch code, Nessie lets you branch *data*.
 
-| Git concept | Nessie equivalent |
+**How Phlo uses Nessie:**
+
+```mermaid
+flowchart LR
+    subgraph WAP["Write-Audit-Publish (Automatic)"]
+        Main[main branch] --> Temp[Create temp branch]
+        Temp --> Write[Write data]
+        Write --> Validate{Validate}
+        Validate -->|Pass| Merge[Merge to main]
+        Validate -->|Fail| Abort[Abort run]
+        Merge --> Cleanup[Delete temp branch]
+    end
+    
+    subgraph Manual["Manual Branching (Exploration)"]
+        Main2[main] --> Exp[Create experiment branch]
+        Exp --> Test[Test changes]
+        Test --> Merge2[Merge to main]
+    end
+```
+
+| What happens | How it's done |
 |---|---|
-| `git branch` | `phlo nessie branch create` |
-| `git diff` | `phlo nessie branch diff` |
-| `git merge` | `phlo nessie branch merge` |
-| `git log` | Nessie commit history |
+| Every pipeline run | Orchestrator creates a temporary branch automatically |
+| Data validation | Runs on the temporary branch (isolated from main) |
+| After validation passes | Orchestrator merges the branch to main |
+| You see the result | Data appears on main, ready to query |
 
-Every table in Iceberg is tracked by Nessie. When you create a branch, you get a snapshot of the entire catalog at that point in time. Changes on the branch — new tables, updated data, schema changes — are isolated until you merge.
+This is Phlo's **Write-Audit-Publish (WAP)** pattern. It happens automatically when you materialize assets — you don't manage branches manually in day-to-day work.
 
-This is powerful for:
+**When you might use branches directly:**
 
-- **Safe experimentation** — try a new ingestion or transform without affecting production
-- **CI/CD for data** — validate changes on a branch before promoting to main
-- **Reproducibility** — query data as it existed at any point in time
+- **Debugging** — inspect what the orchestrator created
+- **Experimentation** — test changes in isolation without triggering a full pipeline run
+- **Understanding** — see how the pieces fit together
 
-Phlo's Write-Audit-Publish (WAP) pattern uses this under the hood: every pipeline run writes to an isolated branch, validates the data, then merges to main automatically.
+This chapter shows you the CLI commands for exploring branches. In production, your orchestrator (Dagster) handles all of this for you.
 
-In this chapter you'll do it manually to see how the pieces fit together.
+## Prerequisites
+
+- Chapters 01–02 complete (Pokemon data ingested and validated)
+- Services running (`phlo services start`)
+
+## Services Used in This Chapter
+
+| Service | URL / Access | Purpose |
+|---------|--------------|---------|
+| Nessie API | `phlo nessie branch list` | CLI for branch operations |
+| Dagster | http://localhost:3000 | Trigger materializations to see WAP in action |
+| Trino | `phlo trino query "SELECT ..."` | Verify data on main branch |
 
 ---
 
-## Step 1 — List existing branches
+## Step 1 — List branches the orchestrator uses
 
-Start by seeing what branches exist:
+See what branches exist. You'll see `main` (production) and possibly WAP temporary branches:
 
 ```bash
 phlo nessie branch list
 ```
 
-You should see a single `main` branch — the default reference for all catalog operations.
+You should see at minimum a single `main` branch — the default reference for all catalog operations.
 
 ---
 
-## Step 2 — Create a branch
+## Step 2 — Create an experiment branch
 
-Create an experiment branch from main:
+Create a branch for experimentation (separate from the orchestrator's WAP branches):
 
 ```bash
 phlo nessie branch create workshop-experiment
@@ -72,19 +103,27 @@ phlo nessie branch list
 
 You should now see both `main` and `workshop-experiment`.
 
+> **Checkpoint:** Confirm your branch is based on the expected commit:
+> ```bash
+> phlo nessie branch show workshop-experiment
+> ```
+> The commit hash should match what `phlo nessie branch show main` displays.
+
 ---
 
-## Step 3 — Materialize to the branch
+## Step 3 — Trigger a materialization
 
-Run a materialization. Phlo's WAP pattern automatically writes to an isolated branch and merges to main, but you can also re-materialize data that will land on main:
+Materialize an asset to see WAP in action:
 
 ```bash
 phlo materialize --select dlt_pokemon
 ```
 
-This re-ingests the Pokemon data. The WAP sensors create a temporary branch, write data, validate, then merge back to main.
+Or use the Dagster UI — see [Chapter 1 Step 3](../01-ingest-pokemon/#step-3-materialize) for detailed UI instructions.
 
-> **Note:** The WAP pattern handles branch isolation automatically during materialization. The `workshop-experiment` branch you created is a separate experiment — it captured a snapshot of main at creation time.
+The orchestrator handles WAP automatically: it creates a temporary branch, writes data, validates, and merges to main. You don't see the temporary branch in normal operation — it's cleaned up after the merge.
+
+> **Note:** The `workshop-experiment` branch you created is separate from WAP. It captured a snapshot of main at creation time and won't receive the new data unless you specifically write to it.
 
 ---
 
@@ -96,13 +135,13 @@ Compare your experiment branch to main:
 phlo nessie branch diff workshop-experiment main
 ```
 
-If you haven't made changes directly on `workshop-experiment`, the diff will show no differences — the branch was forked from the same point. After the materialization in Step 3 landed new commits on main, the diff may show tables that were modified on main since the branch was created.
+If you haven't made changes directly on `workshop-experiment`, the diff will show no differences on that branch. After the materialization in Step 3 landed new commits on main, the diff may show tables that were modified on main since the branch was created.
 
 ---
 
 ## Step 5 — Merge the branch
 
-Merge the experiment branch back into main:
+Merge your experiment branch back into main:
 
 ```bash
 phlo nessie branch merge workshop-experiment main
@@ -113,7 +152,7 @@ phlo nessie branch merge workshop-experiment main
 ✓ Deleted source branch: workshop-experiment
 ```
 
-By default, the source branch is deleted after merge (like a squash-merge). Use `--no-delete-source` to keep it, or `--dry-run` to preview without merging:
+By default, the source branch is deleted after merge. Use `--no-delete-source` to keep it, or `--dry-run` to preview:
 
 ```bash
 phlo nessie branch merge workshop-experiment main --dry-run
@@ -159,10 +198,15 @@ All checks passed!
 You now know:
 
 - **Nessie** provides git-like branching for your data catalog
-- `phlo nessie branch create/list/diff/merge` manage branches from the CLI
-- Phlo's **WAP pattern** uses branches automatically — every pipeline run writes in isolation then merges
-- You can create **manual branches** for safe experimentation and review changes before merging
+- **WAP pattern** — your orchestrator handles branches automatically on every materialization (from [Chapter 1](../01-ingest-pokemon/))
+- **CLI commands** (`phlo nessie branch create/list/diff/merge`) let you explore and experiment with branches directly
+- **In production** — rely on the orchestrator; manual branching is for debugging and experimentation only
+
+**Key concepts for later chapters:**
+- Branching enables isolated testing before data reaches production
+- WAP ensures bad data never lands on main — it's validated in isolation first
+- Nessie branches are lightweight — you can create them freely for experiments
 
 ## Next
 
-→ [Chapter 08 — Alerting & the Hook Bus](../08-alerting-and-hooks/)
+→ [Chapter 08 — Alerting & the Hook Bus](../08-alerting-and-hooks/) — Configure Slack, PagerDuty, or email alerts that fire when quality checks fail or pipelines error out.

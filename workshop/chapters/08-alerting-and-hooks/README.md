@@ -140,11 +140,13 @@ class RawPokemon(PhloSchema):
     url: str = Field(description="API URL for full details")
 ```
 
-Then materialize:
+Then materialize to trigger the failure:
 
 ```bash
 phlo materialize --select dlt_pokemon
 ```
+
+Or use the Dagster UI — see [Chapter 1 Step 3](../01-ingest-pokemon/#step-3-materialize) for detailed UI instructions.
 
 The validation will fail. If you have a Slack webhook configured, the `AlertingHookPlugin` catches the `QualityResultEvent(passed=False)` and sends an alert with:
 
@@ -157,6 +159,8 @@ The validation will fail. If you have a Slack webhook configured, the `AlertingH
 ```bash
 phlo materialize --select dlt_pokemon
 ```
+
+Or use the Dagster UI.
 
 ---
 

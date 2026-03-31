@@ -48,9 +48,13 @@ OTEL_SERVICE_NAME=workshop
 
 ### Step 3: Materialize an Asset
 
+Generate traces by materializing an asset:
+
 ```bash
 phlo materialize --select dlt_pokemon
 ```
+
+Or use the Dagster UI — see [Chapter 1 Step 3](../01-ingest-pokemon/#step-3-materialize) for detailed UI instructions.
 
 This time the pipeline sends traces and metrics to the OTEL collector as it runs.
 Each stage — DLT fetch, Iceberg write, validation — emits its own span.

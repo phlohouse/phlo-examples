@@ -8,15 +8,47 @@ Shape raw data into analytics-ready tables using dbt on Trino/Iceberg.
 - **dbt models on Trino/Iceberg** — how dbt compiles SQL and materializes tables via Trino.
 - **dbt + Dagster integration** — Dagster discovers dbt models as assets automatically.
 
+## Architecture
+
+The medallion architecture organizes data into quality tiers:
+
+```mermaid
+flowchart LR
+    subgraph Bronze["Bronze (Raw)"]
+        PokeAPI[PokeAPI] --> DLT --> B1[raw.pokemon]
+        PokeAPI --> DLT --> B2[raw.pokemon_types]
+    end
+    
+    subgraph Silver["Silver (Cleaned)"]
+        B1 --> S1[silver.stg_pokemon]
+        B2 --> S2[silver.stg_pokemon_types]
+    end
+    
+    subgraph Gold["Gold (Enriched)"]
+        S1 --> G1[gold.dim_pokemon]
+        S1 & S2 --> G2[gold.dim_types]
+        G1 --> G3[gold.fct_pokemon_by_generation]
+    end
+    
+    Gold --> Trino[(Trino)]
+```
+
+**Data quality progression:**
+- **Bronze:** Raw ingestion from sources (landed as-is)
+- **Silver:** Cleaned, typed, deduplicated staging tables
+- **Gold:** Business-ready dimensions and facts for analytics
+
 ## Prerequisites
 
-Chapters 01 complete — `raw.pokemon` and `raw.pokemon_types` tables must exist in Trino.
+Chapters 01 complete — `raw.pokemon` and `raw.pokemon_types` tables must exist in Trino. See [Chapter 01](../01-ingest-pokemon/) for the ingestion setup.
 
-Services must be running:
+## Services Used in This Chapter
 
-```bash
-phlo services start
-```
+| Service | URL / Access | Purpose |
+|---------|--------------|---------|
+| Dagster | http://localhost:3000 | View dbt models as assets, track lineage |
+| Trino | `phlo trino --catalog iceberg` | Query silver and gold tables |
+| dbt docs | Generated after run | View model documentation and lineage |
 
 ---
 
@@ -65,6 +97,12 @@ Key points:
 - **catalog: iceberg** — dbt writes tables to the Iceberg catalog.
 - **schema: silver** — the default schema. Models can override this with `config(schema='gold')`.
 - **type: trino** — dbt-trino adapter handles Trino SQL dialect.
+
+> **Checkpoint:** Verify your dbt project is configured correctly:
+> ```bash
+> phlo dbt debug
+> ```
+> You should see "Connection test: OK" for the Trino connection.
 
 ## Step 2: Define Sources
 
@@ -280,6 +318,11 @@ All checks passed!
 
 You wrote ~80 lines of SQL. dbt handled compilation, execution, and table materialization.
 
+**Key concepts for later chapters:**
+- Medallion architecture (bronze/silver/gold) organizes data by quality and readiness
+- dbt models are automatically Dagster assets — lineage flows through the entire graph
+- Sources (`{{ source() }}`) and refs (`{{ ref() }}`) create an explicit dependency graph
+
 ## Next
 
-→ [Chapter 04 — Explore in pgweb](../04-explore-in-pgweb/)
+→ [Chapter 04 — Explore in pgweb](../04-explore-in-pgweb/) — Query your gold tables through a web-based Postgres explorer connected to Phlo's metadata store.

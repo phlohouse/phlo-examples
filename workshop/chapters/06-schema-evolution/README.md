@@ -69,11 +69,13 @@ This widens the Iceberg table schema by adding `habitat` while preserving Phlo-m
 
 ## Step 5: Re-materialize with the Updated Schema
 
-Re-materialize on the host so the existing data is rewritten against the widened schema:
+Re-materialize so the existing data is rewritten against the widened schema:
 
 ```bash
 phlo materialize --select dlt_pokemon
 ```
+
+Or use the Dagster UI — see [Chapter 1 Step 3](../01-ingest-pokemon/#step-3-materialize) for detailed UI instructions.
 
 The pipeline picks up the new schema, adds the column to Iceberg, and writes data with the `habitat` field populated where available.
 

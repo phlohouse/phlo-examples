@@ -34,6 +34,8 @@ Generate fresh logs by materializing an asset:
 phlo materialize --select dlt_pokemon
 ```
 
+Or use the Dagster UI — see [Chapter 1 Step 3](../01-ingest-pokemon/#step-3-materialize) for detailed UI instructions.
+
 ## Step 3: Query Logs in Grafana
 
 Open **Grafana → Explore** and select the **Loki** datasource. Run this LogQL

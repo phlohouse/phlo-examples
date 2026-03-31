@@ -110,6 +110,8 @@ Re-materialize the Pokemon asset to pick up the contract metadata:
 phlo materialize --select dlt_pokemon
 ```
 
+Or use the Dagster UI — see [Chapter 1 Step 3](../01-ingest-pokemon/#step-3-materialize) for detailed UI instructions.
+
 The asset now carries contract metadata. If freshness exceeds 168 hours or quality drops below 95%, Phlo will flag a violation and notify `analytics@example.com`.
 
 ## Step 5: Check Your Work

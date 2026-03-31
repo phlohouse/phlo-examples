@@ -76,6 +76,8 @@ Run the Sling asset:
 phlo materialize --select sling_pokemon_cards
 ```
 
+Or use the Dagster UI — see [Chapter 1 Step 3](../01-ingest-pokemon/#step-3-materialize) for detailed UI instructions.
+
 Sling reads the CSV, writes Parquet to MinIO, and registers the Iceberg table.
 
 ## Step 4: Verify in Trino
