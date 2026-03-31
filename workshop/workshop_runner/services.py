@@ -101,9 +101,9 @@ class ServiceManager:
             f"--profile {profile}" for profile in self.requested_profiles
         )
         if not self.initialized:
-            self.console.print("  [dim]initializing services (phlo services init --dev --force)...[/dim]")
+            self.console.print("  [dim]initializing services (phlo services init --force)...[/dim]")
             self._run(
-                f"phlo services init --dev --force {requested_profiles}".strip(),
+                f"phlo services init --force {requested_profiles}".strip(),
                 timeout=300,
                 error_message="services init failed",
             )

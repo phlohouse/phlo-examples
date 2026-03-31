@@ -1,0 +1,32 @@
+# Generated Phlo runtime state
+*/.phlo/.DS_Store
+*/.phlo/.gitignore
+*/.phlo/.env
+*/.phlo/.env.local
+*/.phlo/docker-compose.yml
+*/.phlo/logs/
+*/.phlo/native-logs/
+*/.phlo/volumes/
+*/.phlo/dagster/
+*/.phlo/trino/
+*/.phlo/grafana/
+*/.phlo/loki/
+*/.phlo/alloy/
+*/.phlo/prometheus/
+*/.phlo/postgrest/
+*/.phlo/api/
+*/.phlo/alerting/
+*/.phlo/native-processes.json
+*/.phlo/docker-compose.dev.yml
+
+# Local environments and caches
+.claude/
+pokemon-clickstack/
+*/.venv/
+*/__pycache__/
+*/.tmp/
+*.pyc
+*.pyo
+.DS_Store
+*.log
+*.pid

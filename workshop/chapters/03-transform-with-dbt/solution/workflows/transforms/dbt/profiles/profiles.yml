@@ -1,0 +1,13 @@
+workshop_transforms:
+  target: dev
+  outputs:
+    dev:
+      type: trino
+      method: none
+      host: "{{ env_var('TRINO_HOST', 'localhost') }}"
+      port: "{{ env_var('TRINO_PORT', '8080') | int }}"
+      catalog: iceberg
+      schema: silver
+      user: trino
+      http_scheme: http
+      threads: 4

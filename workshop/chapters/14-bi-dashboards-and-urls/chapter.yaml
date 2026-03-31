@@ -1,0 +1,6 @@
+title: BI Dashboards & Named URLs
+act: 4
+profiles: [proxy]
+services: [superset]
+commands:
+  - phlo services start --profile proxy

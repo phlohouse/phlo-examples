@@ -31,20 +31,20 @@ model, its columns, and where each column's value originates. `phlo-lineage`
 parses that manifest and populates the `LineageStore` so the rest of the stack
 can query it.
 
-## Step 2: Materialize the Pipeline
+## Step 2: Use the Existing Lineage Graph
 
 ```bash
-phlo materialize dlt_pokemon -p 2025-01-01
-phlo materialize dim_pokemon -p 2025-01-01
+phlo lineage status
+phlo lineage show dim_pokemon --direction upstream
 ```
 
-This refreshes the ingestion asset, materializes the dbt-backed model, and
-records the lineage metadata used by the CLI commands below. Observatory is
-intentionally out of scope for now.
+The prerequisite chapters already ingested the raw assets and built the dbt
+models. This chapter focuses on querying the lineage graph that those earlier
+runs populated. Observatory is intentionally out of scope for now.
 
 ## Step 3: Inspect an Asset Lineage Graph
 
-Inspect the upstream graph for a model:
+Inspect the upstream graph for a model in detail:
 
 ```bash
 phlo lineage show dim_pokemon --direction upstream
@@ -52,9 +52,9 @@ phlo lineage show dim_pokemon --direction upstream
 
 You should see upstream dependencies such as `stg_pokemon` and `dlt_pokemon`.
 
-## Step 4: Explore Column-Level Lineage
+## Step 4: Explore Overall Graph Status
 
-Check the overall graph status:
+Check the overall graph summary:
 
 ```bash
 phlo lineage status

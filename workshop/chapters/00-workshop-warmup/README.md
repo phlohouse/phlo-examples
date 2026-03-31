@@ -23,4 +23,10 @@ uv run --no-sync workshop-runner --chapter 02-validate-your-data
 uv run --no-sync workshop-runner --chapter 11-lineage
 ```
 
+When you are finished with the workshop session:
+
+```bash
+uv run --no-sync workshop-runner stop
+```
+
 OpenMetadata and Observatory are intentionally out of scope for this warmup path.

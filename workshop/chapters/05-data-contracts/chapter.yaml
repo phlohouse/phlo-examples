@@ -1,0 +1,5 @@
+title: Data Contracts & SLAs
+act: 2
+profiles: [core, query]
+commands:
+  - phlo materialize dlt_pokemon -p 2025-01-01

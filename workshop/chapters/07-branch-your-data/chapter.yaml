@@ -1,0 +1,7 @@
+title: Branch Your Data
+act: 2
+profiles: [core, query]
+commands:
+  - phlo branch create workshop-experiment
+  - phlo materialize dlt_pokemon -p 2025-01-01
+  - phlo branch merge workshop-experiment
