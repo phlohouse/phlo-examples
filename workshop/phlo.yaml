@@ -28,6 +28,10 @@ services:
   - hasura
   - loki
   - observatory
+  - openmetadata
+  - openmetadata-elasticsearch
+  - openmetadata-mysql
+  - openmetadata-setup
   - phlo-api
   - postgres-exporter
   - postgrest
