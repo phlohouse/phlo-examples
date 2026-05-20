@@ -8,7 +8,7 @@ Ingests CGM (Continuous Glucose Monitor) data from Nightscout API into an Iceber
 ### Standard Mode (installs phlo from GitHub)
 
 ```bash
-cd examples/glucose-platform
+cd phlo-examples/nightscout
 phlo services init
 phlo services start
 ```
@@ -18,7 +18,7 @@ phlo services start
 For developing phlo itself with instant iteration:
 
 ```bash
-cd examples/glucose-platform
+cd phlo-examples/nightscout
 phlo services init --dev --phlo-source /path/to/phlo
 phlo services start
 ```
@@ -60,7 +60,7 @@ glucose-platform/
 │   │       └── readings.py    # Glucose entries ingestion
 │   ├── schemas/               # Pandera validation schemas
 │   │   └── nightscout.py      # Raw, Silver, Gold schemas
-│   └── quality/               # Data quality checks (@phlo_quality)
+│   └── quality/               # Data quality checks (@phlo_pandera)
 │       ├── nightscout.py      # Standard quality checks
 │   └── transforms/dbt/        # dbt transformation models
 │       ├── bronze/           # Staging models (stg_*)
@@ -196,7 +196,7 @@ phlo logs --asset glucose_entries # Filter by asset
 phlo logs --level ERROR --since 1h
 phlo logs --follow               # Real-time tail
 
-phlo metrics                     # Summary dashboard
+phlo metrics summary             # Summary dashboard
 phlo metrics asset glucose_entries
 ```
 
@@ -222,9 +222,7 @@ phlo catalog history raw.glucose_entries
 ### Data Contracts
 
 ```bash
-phlo contract list
-phlo contract show glucose_readings
-phlo contract validate glucose_readings
+phlo contracts check --table raw.glucose_entries
 ```
 
 ## Data Contracts
@@ -262,18 +260,18 @@ consumers:
 Validate contracts before deployment:
 
 ```bash
-phlo contract validate glucose_readings
+phlo contracts check --table raw.glucose_entries
 ```
 
 ## Quality Framework
 
-Quality checks use the `@phlo_quality` decorator and Pandera schemas:
+Quality checks use the `@phlo_pandera` decorator and Pandera schemas:
 
 ```python
-from phlo_quality import NullCheck, RangeCheck
+from phlo_pandera import NullCheck, RangeCheck, phlo_pandera
 import phlo
 
-@phlo_quality(
+@phlo_pandera(
     table="silver.fct_glucose_readings",
     checks=[
         NullCheck(columns=["sgv", "reading_timestamp"]),
@@ -405,10 +403,10 @@ Export lineage for documentation:
 
 ```bash
 # Export as Mermaid diagram
-phlo lineage export --format mermaid --output docs/lineage.md
+phlo lineage export glucose_entries --format mermaid --output docs/lineage.md
 
 # Export as DOT for Graphviz
-phlo lineage export --format dot --output lineage.dot
+phlo lineage export glucose_entries --format dot --output lineage.dot
 ```
 
 ### Alerting
@@ -479,8 +477,8 @@ Query Iceberg table metadata:
 phlo catalog tables
 
 # Filter by schema
-phlo catalog tables --schema raw
-phlo catalog tables --schema silver
+phlo catalog tables --namespace raw
+phlo catalog tables --namespace silver
 
 # Describe table metadata
 phlo catalog describe raw.glucose_entries
@@ -515,19 +513,12 @@ Current Snapshot:
 
 ### OpenMetadata Integration
 
-Optionally sync metadata to OpenMetadata for catalog search and discovery:
+Optionally add OpenMetadata for catalog search and discovery:
 
 ```bash
 # Configure OpenMetadata connection (add to .env)
 OPENMETADATA_HOST=http://localhost:8585
 OPENMETADATA_API_VERSION=v1
-
-# Sync table metadata
-phlo catalog sync --tables raw.glucose_entries
-phlo catalog sync --schema silver
-
-# Sync quality check results
-phlo catalog sync --quality-checks
 ```
 
 OpenMetadata provides:
@@ -544,10 +535,7 @@ The catalog integrates with data contracts for validation:
 
 ```bash
 # Compare contract schema with actual table schema
-phlo contract validate glucose_readings
-
-# Check if contract SLAs are met
-phlo contract check glucose_readings --sla
+phlo contracts check --table raw.glucose_entries
 ```
 
 See `contracts/glucose_readings.yaml` for contract definitions and the Data Contracts section above for details.

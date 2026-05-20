@@ -28,7 +28,7 @@ def check_postgres() -> bool:
             [sys.executable, "-m", "phlo.cli.main", "postgres", "query", "SELECT 1;"],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=120,
         )
         if result.returncode == 0:
             print("  \033[32m✓\033[0m Postgres is ready")

@@ -3,10 +3,11 @@
 
 import subprocess
 import sys
+import time
 
 
-def _run(command: list[str]) -> tuple[bool, str]:
-    result = subprocess.run(command, capture_output=True, text=True, timeout=30)
+def _run(command: list[str], *, timeout: int = 30) -> tuple[bool, str]:
+    result = subprocess.run(command, capture_output=True, text=True, timeout=timeout)
     output = (result.stdout + result.stderr).strip()
     return result.returncode == 0, output
 
@@ -26,12 +27,22 @@ def check_tracing_stack() -> bool:
 
 
 def check_dbt_wrapper() -> bool:
-    ok, output = _run(["phlo", "dbt", "compile"])
-    if not ok:
-        print(f"  \033[31m✗\033[0m phlo dbt compile failed: {output}")
-        return False
-    print("  \033[32m✓\033[0m dbt path is warmed and responsive")
-    return True
+    output = ""
+    retry_markers = (
+        "SERVER_STARTING_UP",
+        "Connection refused",
+        "Failed to establish a new connection",
+    )
+    for attempt in range(5):
+        ok, output = _run(["phlo", "dbt", "compile"], timeout=120)
+        if ok:
+            print("  \033[32m✓\033[0m dbt path is warmed and responsive")
+            return True
+        if not any(marker in output for marker in retry_markers) or attempt == 4:
+            break
+        time.sleep(10)
+    print(f"  \033[31m✗\033[0m phlo dbt compile failed: {output}")
+    return False
 
 
 def main() -> int:

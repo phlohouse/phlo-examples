@@ -2,6 +2,12 @@
 name: glucose-platform
 description: "glucose-platform data lakehouse"
 
+capabilities:
+  defaults:
+    table_store: iceberg
+    query_engine: trino
+    catalog: nessie
+
 # Smart defaults are used for infrastructure (9 services: dagster, postgres, minio, etc.)
 # Override only what you need. For example:
 #
@@ -14,5 +20,6 @@ description: "glucose-platform data lakehouse"
 infrastructure:
   services:
     minio:
+      service_name: minio
       api_port: 9100
       console_port: 9101

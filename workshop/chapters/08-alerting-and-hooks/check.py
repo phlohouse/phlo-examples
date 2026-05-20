@@ -31,6 +31,8 @@ def check_pokemon_table() -> bool:
                 "phlo.cli.main",
                 "trino",
                 "query",
+            "--timeout",
+            "120",
                 "SELECT COUNT(*) FROM raw.pokemon",
                 "--catalog",
                 "iceberg",
@@ -41,7 +43,7 @@ def check_pokemon_table() -> bool:
             ],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=120,
         )
         if result.returncode != 0:
             print(f"  \033[31m✗\033[0m Trino query failed: {result.stderr.strip()}")

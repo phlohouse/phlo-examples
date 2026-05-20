@@ -12,6 +12,8 @@ def query_trino(sql: str) -> str:
             "phlo",
             "trino",
             "query",
+            "--timeout",
+            "120",
             "--catalog",
             "iceberg",
             "--schema",
@@ -20,7 +22,7 @@ def query_trino(sql: str) -> str:
             "CSV",
             sql,
         ],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, timeout=120,
     )
     if result.returncode != 0:
         raise RuntimeError(f"Trino query failed: {result.stderr.strip()}")

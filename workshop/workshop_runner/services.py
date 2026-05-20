@@ -335,7 +335,7 @@ class ServiceManager:
             while time.monotonic() < deadline:
                 try:
                     response = httpx.get(
-                        "http://localhost",
+                        "http://127.0.0.1",
                         headers={"Host": "traefik.phlo.localhost"},
                         timeout=5,
                         follow_redirects=True,
@@ -429,7 +429,7 @@ class ServiceManager:
         while time.monotonic() < deadline:
             try:
                 response = httpx.get(
-                    "http://localhost:8088/health",
+                    "http://127.0.0.1:8088/health",
                     timeout=10,
                     follow_redirects=True,
                 )
@@ -437,12 +437,12 @@ class ServiceManager:
                     if "proxy" not in self.started_profiles:
                         return
                     named = httpx.get(
-                        "http://localhost",
+                        "http://127.0.0.1",
                         headers={"Host": "superset.phlo.localhost"},
                         timeout=5,
                         follow_redirects=True,
                     )
-                    if named.status_code == 200:
+                    if named.status_code < 500:
                         return
                     last_error = f"named-url status {named.status_code}"
                 else:

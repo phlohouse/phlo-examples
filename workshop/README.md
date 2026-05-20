@@ -1,6 +1,6 @@
 # Phlo Workshop
 
-**Build a Pokemon lakehouse from scratch — 16 guided chapters covering every Phlo package.**
+**Build a Pokemon lakehouse from scratch — 16 guided chapters covering the Phlo stack.**
 
 ## What You'll Build
 
@@ -13,7 +13,8 @@ A complete data platform that:
 5. Exposes data via REST and GraphQL APIs
 6. Visualizes everything in Grafana and Superset dashboards
 
-By the end you'll have used all 32 Phlo packages in a single, working project.
+By the end you'll have used Phlo's ingestion, quality, dbt, lineage, catalog,
+API, BI, observability, and plugin packages in a single working project.
 
 ## How It Works
 
@@ -51,7 +52,7 @@ phlo services start
 ```
 
 Services take ~60 seconds to come up. Dagster UI will be available at
-`http://localhost:10006`.
+`http://localhost:3000` unless you override `DAGSTER_PORT`.
 
 For the standalone runner, do the expensive setup once in chapter 0:
 
@@ -111,7 +112,7 @@ uv run --no-sync workshop-runner stop
 | 13 | APIs for Your Data          | `phlo-postgrest`, `phlo-hasura`, `phlo-api`                                                | ~15 min |
 | 14 | BI Dashboards & Named URLs  | `phlo-superset`, `phlo-traefik`                                                            | ~15 min |
 | 15 | Second Source with Sling    | `phlo-sling`                                                                               | ~10 min |
-| 16 | Build Your Own Plugin       | `phlo-delta`, `phlo-rustfs`, `phlo-testing`, `phlo-core-plugins`, `phlo-observatory-example` | ~30 min |
+| 16 | Build Your Own Plugin       | `phlo-delta`, `phlo-rustfs`, `phlo-testing`, `phlo-core-plugins`, `phlo-observatory` | ~30 min |
 
 **Total: ~3.5 hours** (or spread across multiple sessions — each act is self-contained
 once its services are running).

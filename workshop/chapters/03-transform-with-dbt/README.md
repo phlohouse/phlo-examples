@@ -100,7 +100,7 @@ Key points:
 
 > **Checkpoint:** Verify your dbt project is configured correctly:
 > ```bash
-> phlo dbt debug
+> phlo dbt compile --local
 > ```
 > You should see "Connection test: OK" for the Trino connection.
 

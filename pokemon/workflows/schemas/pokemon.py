@@ -4,7 +4,7 @@ Schemas define data validation rules and auto-generate Iceberg schemas.
 """
 
 from pandera.pandas import Field
-from phlo_quality.schemas import PhloSchema
+from phlo_pandera.schemas import PhloSchema
 
 
 class RawPokemon(PhloSchema):

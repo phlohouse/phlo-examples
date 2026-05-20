@@ -14,7 +14,7 @@ dependencies = [
     "phlo-trino",
     "phlo-postgres",
     "phlo-minio",
-    "phlo-quality",
+    "phlo-pandera",
 ]
 
 [dependency-groups]
@@ -36,7 +36,7 @@ phlo-minio = { path = "../../phlo/packages/phlo-minio", editable = true }
 phlo-nessie = { path = "../../phlo/packages/phlo-nessie", editable = true }
 phlo-trino = { path = "../../phlo/packages/phlo-trino", editable = true }
 phlo-openmetadata = { path = "../../phlo/packages/phlo-openmetadata", editable = true }
-phlo-quality = { path = "../../phlo/packages/phlo-quality", editable = true }
+phlo-pandera = { path = "../../phlo/packages/phlo-pandera", editable = true }
 
 [tool.ruff]
 line-length = 100

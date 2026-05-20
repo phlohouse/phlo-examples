@@ -10,7 +10,7 @@ This example demonstrates real-world data engineering patterns:
 - **Mixed data types**: Profile snapshots (slowly changing) + events (immutable stream)
 - **Different merge strategies**: Shows when to use append vs merge
 - **Public API**: Works with GitHub's public API (token optional for higher rate limits)
-- **Comprehensive testing**: Includes 367 lines of merge strategy tests
+- **Comprehensive testing**: Includes focused merge strategy tests
 - **Production patterns**: Infrastructure configuration, quality checks, automated testing
 
 ## Quick Start
@@ -73,7 +73,7 @@ github/
 │   │   └── github.py           # GitHub data schemas
 │   └── transforms/dbt/         # dbt transformation models
 ├── tests/                      # Comprehensive test suite
-│   └── test_merge_strategies.py  # 367 lines of merge tests
+│   └── test_merge_strategies.py  # Merge behavior tests
 ├── phlo.yaml                   # Infrastructure configuration
 └── pyproject.toml              # Project dependencies
 ```
@@ -233,15 +233,14 @@ endpoint = f"{postgres_config['internal_host']}:{postgres_config['port']}"
 
 ## Comprehensive Test Suite
 
-This project includes extensive merge strategy tests (`tests/test_merge_strategies.py` - 367 lines):
+This project includes merge strategy tests in `tests/test_merge_strategies.py`.
 
 **Test coverage:**
 
-- Append strategy with hash deduplication
-- Merge strategy with last deduplication
-- Merge strategy with first deduplication
+- Append strategy behavior
+- Merge strategy idempotency and update behavior
 - Edge cases and error handling
-- Performance benchmarks
+- Schema evolution behavior
 
 **Run tests:**
 
@@ -336,10 +335,10 @@ This example teaches patterns applicable to:
 
 ## Documentation
 
-- [Phlo Documentation](https://github.com/iamgp/phlo)
-- [Developer Guide](../../docs/guides/developer-guide.md) - Comprehensive decorator usage
-- [CLI Reference](../../docs/reference/cli-reference.md) - All CLI commands
-- [Configuration Reference](../../docs/reference/configuration-reference.md) - Infrastructure config
+- [Phlo Documentation](https://github.com/phlohouse/phlo)
+- [Developer Guide](../../phlo/docs/guides/developer-guide.md) - Comprehensive decorator usage
+- [CLI Reference](../../phlo/docs/reference/cli-reference.md) - All CLI commands
+- [Configuration Reference](../../phlo/docs/reference/configuration-reference.md) - Infrastructure config
 
 ## Why This Example Matters
 

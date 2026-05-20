@@ -11,7 +11,7 @@ from pathlib import Path
 
 from pandera.pandas import Field
 from phlo_dbt.dbt_schema import dbt_model_to_pandera
-from phlo_quality.schemas import PhloSchema
+from phlo_pandera.schemas import PhloSchema
 
 # Validation constants
 VALID_DIRECTIONS = [

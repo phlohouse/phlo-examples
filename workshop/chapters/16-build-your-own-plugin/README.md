@@ -131,7 +131,7 @@ Pokemon Statistics
 
 ## Exercise 16b — Observatory Extension
 
-Add a "Pokemon Dashboard" page to Observatory following the `phlo-observatory-example` pattern.
+Add a "Pokemon Dashboard" page to Observatory following the plugin surface pattern.
 
 ### Step 1: Create the Extension Plugin
 
@@ -209,7 +209,7 @@ Add a Delta catalog configuration to your Trino setup. This registers a second c
 Update one ingestion asset to use Delta format, then re-materialize:
 
 ```bash
-phlo materialize --select dlt_pokemon_types --table-format delta
+phlo materialize --select dlt_pokemon_types
 ```
 
 ### Step 4: Query Both Formats

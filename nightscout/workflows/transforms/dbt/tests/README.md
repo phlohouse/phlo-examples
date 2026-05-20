@@ -1,6 +1,6 @@
-# dbt Tests for GitHub Analytics
+# dbt Tests for Nightscout Analytics
 
-This directory contains comprehensive tests for the GitHub analytics workflow in Phlo.
+This directory contains comprehensive tests for the nightscout analytics workflow in Phlo.
 
 ## Test Coverage
 
@@ -55,7 +55,8 @@ This directory contains comprehensive tests for the GitHub analytics workflow in
 
 ```bash
 # Install dbt packages
-dbt deps
+cd workflows/transforms/dbt
+uv run dbt deps
 
 # Ensure data is loaded
 # Run ingestion assets first
@@ -64,40 +65,41 @@ dbt deps
 ### Run All Tests
 
 ```bash
-dbt test --select tag:github
+phlo dbt test --select tag:nightscout
 ```
 
 ### Run Specific Test Categories
 
 ```bash
 # Bronze layer only
-dbt test --select tag:bronze
+phlo dbt test --select tag:bronze
 
 # Silver layer only
-dbt test --select tag:silver
+phlo dbt test --select tag:silver
 
 # Gold layer only
-dbt test --select tag:gold
+phlo dbt test --select tag:gold
 
 # Marts only
-dbt test --select tag:mart
+phlo dbt test --select tag:mart
 ```
 
 ### Run Individual Tests
 
 ```bash
 # Test specific model
-dbt test --select stg_github_user_events
+phlo dbt test --select stg_glucose_entries
 
 # Test specific test
-dbt test --select test_github_event_integrity
+phlo dbt test --select test_glucose_reading_integrity
 ```
 
 ### Run Tests with Data
 
 ```bash
 # Run models and tests together
-dbt build --select tag:github
+phlo dbt run --select tag:nightscout
+phlo dbt test --select tag:nightscout
 ```
 
 ## Test Results Interpretation
@@ -131,7 +133,7 @@ columns:
 
 ### Business Rules
 
-Use `phlo_quality` checks for cross-column/range validation where dbt tests are too limited.
+Use `phlo_pandera` checks for cross-column/range validation where dbt tests are too limited.
 
 ### Custom Logic
 
@@ -160,11 +162,12 @@ Use `phlo_quality` checks for cross-column/range validation where dbt tests are 
 
 ```bash
 # Run tests in CI pipeline
-dbt test --select tag:github --fail-fast
+phlo dbt test --select tag:nightscout --fail-fast
 
 # Generate test reports
-dbt docs generate
-dbt docs serve
+cd workflows/transforms/dbt
+uv run dbt docs generate
+uv run dbt docs serve
 ```
 
 ## Troubleshooting

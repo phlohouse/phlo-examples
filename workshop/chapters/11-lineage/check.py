@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 def _run(command: list[str]) -> tuple[bool, str]:
-    result = subprocess.run(command, capture_output=True, text=True, timeout=30)
+    result = subprocess.run(command, capture_output=True, text=True, timeout=120)
     output = (result.stdout + result.stderr).strip()
     return result.returncode == 0, output
 

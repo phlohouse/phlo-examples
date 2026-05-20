@@ -14,7 +14,8 @@ dependencies = [
     "phlo-trino",
     "phlo-postgres",
     "phlo-minio",
-    "phlo-quality",
+    "phlo-pandera",
+    "phlo-testing",
 ]
 
 [dependency-groups]
@@ -36,7 +37,8 @@ phlo-minio = { path = "../../phlo/packages/phlo-minio", editable = true }
 phlo-nessie = { path = "../../phlo/packages/phlo-nessie", editable = true }
 phlo-trino = { path = "../../phlo/packages/phlo-trino", editable = true }
 phlo-openmetadata = { path = "../../phlo/packages/phlo-openmetadata", editable = true }
-phlo-quality = { path = "../../phlo/packages/phlo-quality", editable = true }
+phlo-pandera = { path = "../../phlo/packages/phlo-pandera", editable = true }
+phlo-testing = { path = "../../phlo/packages/phlo-testing", editable = true }
 
 [tool.ruff]
 line-length = 100
@@ -44,3 +46,10 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: requires a running Phlo table store",
+]
+addopts = ["-m", "not integration"]

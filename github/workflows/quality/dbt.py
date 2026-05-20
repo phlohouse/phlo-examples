@@ -6,10 +6,10 @@ This demonstrates the dbt quality check naming/metadata contract:
 """
 
 import os
+from typing import Any
 
 from dagster import AssetCheckExecutionContext, AssetCheckResult, AssetKey, asset_check
-from dagster_dbt import DbtCliResource
-from phlo_quality.contract import QualityCheckContract, dbt_check_name
+from phlo_pandera.contract import QualityCheckContract, dbt_check_name
 
 from phlo.config import get_settings
 
@@ -21,7 +21,7 @@ from phlo.config import get_settings
     description="Runs dbt tests for fct_github_events and reports results via the contract metadata.",
 )
 def dbt_generic_fct_github_events(
-    context: AssetCheckExecutionContext, dbt_validator: DbtCliResource
+    context: AssetCheckExecutionContext, dbt_validator: Any
 ) -> AssetCheckResult:
     settings = get_settings()
     branch_name = os.getenv("NESSIE_REF") or settings.iceberg_nessie_ref

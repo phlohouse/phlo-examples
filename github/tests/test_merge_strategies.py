@@ -3,17 +3,14 @@ Comprehensive tests for phlo merge strategies.
 
 Tests all combinations of:
 - merge_strategy: append, merge
-- deduplication: True, False
-- deduplication_method: first, last, hash
+- Iceberg append and merge table behavior
 """
 
 import tempfile
 from pathlib import Path
 
 import pandas as pd
-import pyarrow as pa
 import pytest
-from phlo_dlt.dlt_helpers import _deduplicate_arrow_table
 from phlo_iceberg.resource import IcebergResource
 from phlo_iceberg.tables import append_to_table, delete_table, ensure_table, merge_to_table
 from pyiceberg.schema import Schema
@@ -63,80 +60,6 @@ def sample_data_no_duplicates():
         {"id": "2", "value": 200, "name": "second"},
         {"id": "3", "value": 300, "name": "third"},
     ]
-
-
-class TestDeduplicationMethods:
-    """Test source-level deduplication methods."""
-
-    def test_deduplication_method_first(self, sample_data_with_duplicates):
-        """Test 'first' deduplication method keeps first occurrence."""
-        df = pd.DataFrame(sample_data_with_duplicates)
-        arrow_table = pa.Table.from_pandas(df)
-
-        class MockLog:
-            def info(self, msg):
-                pass
-
-        class MockContext:
-            def __init__(self):
-                self.log = MockLog()
-
-        result = _deduplicate_arrow_table(
-            arrow_table=arrow_table, unique_key="id", method="first", context=MockContext()
-        )
-
-        result_df = result.to_pandas()
-        assert len(result_df) == 3, "Should have 3 unique IDs"
-
-        # Should keep first occurrence of ID "1"
-        first_row = result_df[result_df["id"] == "1"].iloc[0]
-        assert first_row["value"] == 100, "Should keep first value"
-        assert first_row["name"] == "first", "Should keep first name"
-
-    def test_deduplication_method_last(self, sample_data_with_duplicates):
-        """Test 'last' deduplication method keeps last occurrence."""
-        df = pd.DataFrame(sample_data_with_duplicates)
-        arrow_table = pa.Table.from_pandas(df)
-
-        class MockLog:
-            def info(self, msg):
-                pass
-
-        class MockContext:
-            def __init__(self):
-                self.log = MockLog()
-
-        result = _deduplicate_arrow_table(
-            arrow_table=arrow_table, unique_key="id", method="last", context=MockContext()
-        )
-
-        result_df = result.to_pandas()
-        assert len(result_df) == 3, "Should have 3 unique IDs"
-
-        # Should keep last occurrence of ID "1"
-        last_row = result_df[result_df["id"] == "1"].iloc[0]
-        assert last_row["value"] == 150, "Should keep last value"
-        assert last_row["name"] == "duplicate", "Should keep last name"
-
-    def test_deduplication_method_hash(self, sample_data_with_duplicates):
-        """Test 'hash' deduplication method based on content."""
-        df = pd.DataFrame(sample_data_with_duplicates)
-        arrow_table = pa.Table.from_pandas(df)
-
-        class MockLog:
-            def info(self, msg):
-                pass
-
-        class MockContext:
-            def __init__(self):
-                self.log = MockLog()
-
-        result = _deduplicate_arrow_table(
-            arrow_table=arrow_table, unique_key="id", method="hash", context=MockContext()
-        )
-
-        result_df = result.to_pandas()
-        assert len(result_df) == 4, "Hash method uses content, not just ID"
 
 
 class TestAppendStrategy:

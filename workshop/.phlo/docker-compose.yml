@@ -4,6 +4,18 @@
 # Modify phlo.yaml (env:) for defaults and .phlo/.env.local for secrets
 
 services:
+  postgres-volume-setup:
+    image: alpine:3.20
+    restart: 'no'
+    user: 0:0
+    volumes:
+    - postgres-data:/var/lib/postgresql/data
+    command: '-c " mkdir -p /var/lib/postgresql/data && chown -R 70:70 /var/lib/postgresql/data
+      && chmod 700 /var/lib/postgresql/data && echo ''Postgres data volume ownership
+      initialized'' "
+
+      '
+    entrypoint: /bin/sh
   minio:
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     restart: unless-stopped
@@ -41,8 +53,7 @@ services:
     - ${MINIO_API_PORT:-9000}:9000
     - ${MINIO_CONSOLE_PORT:-9001}:9001
     volumes:
-    - ./volumes/minio:/data
-    - ./volumes/minio-certs:/root/.minio/certs:ro
+    - minio-data:/data
     command:
     - server
     - /data
@@ -57,56 +68,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-  phlo-api:
-    build:
-      context: ../../../phlo/packages/phlo-api/src/phlo_api
-      dockerfile: Dockerfile
-    profiles:
-    - api
-    restart: unless-stopped
-    labels:
-      phlo.metrics.enabled: 'true'
-      phlo.metrics.port: phlo-api:4000
-      phlo.metrics.path: /api/maintenance/metrics
-      traefik.enable: 'true'
-      traefik.http.routers.api.rule: Host(`api.${TRAEFIK_DOMAIN:-phlo.localhost}`)
-      traefik.http.routers.api.entrypoints: web
-      traefik.http.services.api.loadbalancer.server.port: '4000'
-    environment:
-      HOST: 0.0.0.0
-      PORT: 4000
-      PYTHONUNBUFFERED: '1'
-    ports:
-    - ${PHLO_API_PORT:-4000}:4000
-    healthcheck:
-      test:
-      - CMD
-      - python
-      - -c
-      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:4000/health')
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-  traefik:
-    image: traefik:v3.3
-    profiles:
-    - proxy
-    restart: unless-stopped
-    labels:
-      traefik.enable: 'true'
-      traefik.http.routers.traefik.rule: Host(`traefik.${TRAEFIK_DOMAIN:-phlo.localhost}`)
-      traefik.http.routers.traefik.service: api@internal
-      traefik.http.routers.traefik.entrypoints: web
-    ports:
-    - ${TRAEFIK_HTTP_PORT:-80}:80
-    volumes:
-    - /var/run/docker.sock:/var/run/docker.sock:ro
-    command:
-    - --providers.docker=true
-    - --providers.docker.exposedbydefault=false
-    - --entrypoints.web.address=:80
-    - --api.dashboard=true
   alloy:
     image: grafana/alloy:v1.4.2
     profiles:
@@ -133,6 +94,31 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  clickstack:
+    image: ${CLICKSTACK_IMAGE:-docker.hyperdx.io/hyperdx/hyperdx-all-in-one}
+    profiles:
+    - observability
+    restart: unless-stopped
+    user: '0'
+    environment:
+      FRONTEND_URL: ${CLICKSTACK_PUBLIC_URL:-}
+    ports:
+    - ${CLICKSTACK_PORT:-18080}:8080
+    - ${CLICKSTACK_HTTP_PORT:-18123}:8123
+    - ${CLICKSTACK_NATIVE_PORT:-19002}:9000
+    volumes:
+    - clickstack-data:/var/lib/clickhouse
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - --quiet
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:8080
+      interval: 10s
+      timeout: 5s
+      retries: 10
   prometheus:
     image: prom/prometheus:${PROMETHEUS_VERSION:-v3.1.0}
     profiles:
@@ -147,7 +133,7 @@ services:
     - ${PROMETHEUS_PORT:-9090}:9090
     volumes:
     - ./prometheus:/etc/prometheus:ro
-    - ./volumes/prometheus:/prometheus
+    - prometheus-data:/prometheus
     command:
     - --config.file=/etc/prometheus/prometheus.yml
     - --storage.tsdb.path=/prometheus
@@ -178,7 +164,7 @@ services:
     - ${LOKI_PORT:-3100}:3100
     volumes:
     - ./loki:/etc/loki:ro
-    - ./volumes/loki:/loki
+    - loki-data:/loki
     command: -config.file=/etc/loki/loki-config.yml
     healthcheck:
       test:
@@ -191,26 +177,39 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-  openmetadata-elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.4
+  phlo-api:
+    build:
+      context: ../../../phlo/packages/phlo-api/src/phlo_api
+      dockerfile: Dockerfile
+      args:
+        PHLO_VERSION: ${PHLO_VERSION:-}
+        PHLO_API_VERSION: ${PHLO_API_VERSION:-}
     profiles:
-    - openmetadata
+    - api
     restart: unless-stopped
+    labels:
+      phlo.metrics.enabled: 'true'
+      phlo.metrics.port: phlo-api:4000
+      phlo.metrics.path: /api/maintenance/metrics
     environment:
-      discovery.type: single-node
-      ES_JAVA_OPTS: ${OPENMETADATA_ES_JAVA_OPTS:--Xms256m -Xmx256m}
-      xpack.security.enabled: 'false'
+      HOST: 0.0.0.0
+      PORT: 4000
+      PYTHONUNBUFFERED: '1'
+      CLICKSTACK_QUERY_URL: ${CLICKSTACK_QUERY_URL:-}
+      CLICKSTACK_QUERY_USER: ${CLICKSTACK_QUERY_USER:-}
+      CLICKSTACK_QUERY_PASSWORD: ${CLICKSTACK_QUERY_PASSWORD:-}
+    ports:
+    - ${PHLO_API_PORT:-4000}:4000
     healthcheck:
       test:
       - CMD
-      - sh
+      - python
       - -c
-      - curl -s http://localhost:9200/_cluster/health?pretty | grep status | grep
-        -qE 'green|yellow'
-      interval: 15s
+      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:4000/health')
+      interval: 30s
       timeout: 10s
-      retries: 10
-      start_period: 120s
+      retries: 3
+      start_period: 10s
   openmetadata-mysql:
     image: docker.getcollate.io/openmetadata/db:${OPENMETADATA_VERSION:-1.9.7}
     profiles:
@@ -231,42 +230,74 @@ services:
       interval: 15s
       timeout: 10s
       retries: 10
-  clickstack:
-    image: ${CLICKSTACK_IMAGE:-docker.hyperdx.io/hyperdx/hyperdx-all-in-one}
+  openmetadata-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.4
     profiles:
-    - observability
+    - openmetadata
     restart: unless-stopped
-    user: '0'
-    ports:
-    - ${CLICKSTACK_PORT:-8080}:8080
-    - ${CLICKSTACK_OTLP_GRPC_PORT:-4317}:4317
-    - ${CLICKSTACK_OTLP_HTTP_PORT:-4318}:4318
-    - ${CLICKSTACK_NATIVE_PORT:-9000}:9000
-    volumes:
-    - ./volumes/clickstack:/var/lib/clickhouse
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: ${OPENMETADATA_ES_JAVA_OPTS:--Xms256m -Xmx256m}
+      xpack.security.enabled: 'false'
     healthcheck:
       test:
       - CMD
-      - wget
-      - --quiet
-      - --tries=1
-      - --spider
-      - http://127.0.0.1:8080
+      - sh
+      - -c
+      - curl -s http://localhost:9200/_cluster/health?pretty | grep status | grep
+        -qE 'green|yellow'
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+  traefik:
+    image: traefik:v3.3
+    profiles:
+    - proxy
+    restart: unless-stopped
+    labels:
+      traefik.enable: 'true'
+      traefik.http.routers.traefik.rule: Host(`traefik.${TRAEFIK_DOMAIN:-phlo.localhost}`)
+      traefik.http.routers.traefik.service: api@internal
+      traefik.http.routers.traefik.entrypoints: web
+    ports:
+    - ${TRAEFIK_HTTP_PORT:-80}:80
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+    - --providers.docker=true
+    - --providers.docker.exposedbydefault=false
+    - --entrypoints.web.address=:80
+    - --api.dashboard=true
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    labels:
+      phlo.metrics.enabled: 'false'
+      phlo.grafana.datasource: 'true'
+      phlo.grafana.datasource.type: postgres
+      phlo.grafana.datasource.name: PostgreSQL
+      phlo.grafana.datasource.url: postgres:5432
+      phlo.grafana.datasource.database: ${POSTGRES_DB:-phlo}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-phlo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-phlo}
+      POSTGRES_DB: ${POSTGRES_DB:-phlo}
+      POSTGRES_SSL_MODE: ${POSTGRES_SSL_MODE:-prefer}
+    ports:
+    - ${POSTGRES_PORT:-5432}:5432
+    volumes:
+    - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U ${POSTGRES_USER:-phlo}
       interval: 10s
       timeout: 5s
       retries: 10
-  postgres-volume-setup:
-    image: alpine:3.20
-    restart: 'no'
-    user: 0:0
-    volumes:
-    - ./volumes/postgres:/var/lib/postgresql/data
-    command: '-c " mkdir -p /var/lib/postgresql/data && chown -R 70:70 /var/lib/postgresql/data
-      && chmod 700 /var/lib/postgresql/data && echo ''Postgres data volume ownership
-      initialized'' "
-
-      '
-    entrypoint: /bin/sh
+    depends_on:
+      postgres-volume-setup:
+        condition: service_completed_successfully
   minio-setup:
     image: minio/mc:latest
     restart: 'no'
@@ -281,42 +312,6 @@ services:
       '
     depends_on:
       minio:
-        condition: service_healthy
-  observatory:
-    build:
-      context: ../../../phlo/packages/phlo-observatory/src/phlo_observatory
-      dockerfile: Dockerfile
-    profiles:
-    - api
-    restart: unless-stopped
-    labels:
-      phlo.metrics.enabled: 'false'
-    environment:
-      NODE_ENV: production
-      HOST: 0.0.0.0
-      PORT: 3000
-      DAGSTER_GRAPHQL_URL: http://dagster:3000/graphql
-      NESSIE_URL: http://nessie:19120/api/v2
-      TRINO_URL: http://trino:8080
-      PHLO_API_URL: http://phlo-api:4000
-    ports:
-    - ${OBSERVATORY_PORT:-3001}:3000
-    volumes:
-    - /var/run/docker.sock:/var/run/docker.sock
-    healthcheck:
-      test:
-      - CMD
-      - wget
-      - --no-verbose
-      - --tries=1
-      - --spider
-      - http://127.0.0.1:3000/
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    depends_on:
-      phlo-api:
         condition: service_healthy
   grafana:
     image: grafana/grafana:${GRAFANA_VERSION:-11.3.1}
@@ -337,7 +332,7 @@ services:
     volumes:
     - ./grafana/provisioning:/etc/grafana/provisioning:ro
     - ./grafana/dashboards:/etc/grafana/dashboards:ro
-    - ./volumes/grafana:/var/lib/grafana
+    - grafana-data:/var/lib/grafana
     healthcheck:
       test:
       - CMD
@@ -353,6 +348,41 @@ services:
       prometheus:
         condition: service_healthy
       loki:
+        condition: service_healthy
+  observatory:
+    build:
+      context: ../../../phlo/packages/phlo-observatory/src/phlo_observatory
+      dockerfile: Dockerfile
+    profiles:
+    - api
+    restart: unless-stopped
+    labels:
+      phlo.metrics.enabled: 'false'
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      DAGSTER_GRAPHQL_URL: http://dagster:3000/graphql
+      NESSIE_URL: http://nessie:19120/api/v2
+      TRINO_URL: http://trino:8080
+      PHLO_API_URL: http://phlo-api:4000
+      PHLO_API_BROWSER_URL: ${PHLO_API_BROWSER_URL:-http://127.0.0.1:${PHLO_API_PORT:-4000}}
+    ports:
+    - ${OBSERVATORY_PORT:-3001}:3000
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:3000/
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      phlo-api:
         condition: service_healthy
   openmetadata-setup:
     image: docker.getcollate.io/openmetadata/server:${OPENMETADATA_VERSION:-1.9.7}
@@ -381,158 +411,6 @@ services:
       openmetadata-mysql:
         condition: service_healthy
       openmetadata-elasticsearch:
-        condition: service_healthy
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    labels:
-      phlo.metrics.enabled: 'false'
-      phlo.grafana.datasource: 'true'
-      phlo.grafana.datasource.type: postgres
-      phlo.grafana.datasource.name: PostgreSQL
-      phlo.grafana.datasource.url: postgres:5432
-      phlo.grafana.datasource.database: ${POSTGRES_DB:-phlo}
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-phlo}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-phlo}
-      POSTGRES_DB: ${POSTGRES_DB:-phlo}
-      POSTGRES_SSL_MODE: ${POSTGRES_SSL_MODE:-prefer}
-    ports:
-    - ${POSTGRES_PORT:-5432}:5432
-    volumes:
-    - ./volumes/postgres:/var/lib/postgresql/data
-    - ./volumes/postgres-certs:/var/lib/postgresql/certs:ro
-    healthcheck:
-      test:
-      - CMD-SHELL
-      - pg_isready -U ${POSTGRES_USER:-phlo}
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    depends_on:
-      postgres-volume-setup:
-        condition: service_completed_successfully
-  openmetadata:
-    image: docker.getcollate.io/openmetadata/server:${OPENMETADATA_VERSION:-1.9.7}
-    profiles:
-    - openmetadata
-    restart: unless-stopped
-    labels:
-      phlo.metrics.enabled: 'false'
-    environment:
-      OPENMETADATA_CLUSTER_NAME: ${OPENMETADATA_CLUSTER_NAME:-openmetadata}
-      SERVER_PORT: ${OPENMETADATA_PORT:-8585}
-      SERVER_ADMIN_PORT: ${OPENMETADATA_ADMIN_PORT:-8586}
-      LOG_LEVEL: ${OPENMETADATA_LOG_LEVEL:-INFO}
-      OPENMETADATA_HEAP_OPTS: ${OPENMETADATA_HEAP_OPTS:--Xmx384m -Xms384m}
-      AUTHENTICATION_PROVIDER: ${OPENMETADATA_AUTH_PROVIDER:-basic}
-      AUTHENTICATION_RESPONSE_TYPE: ${OPENMETADATA_AUTH_RESPONSE_TYPE:-id_token}
-      AUTHENTICATION_ENABLE_SELF_SIGNUP: ${OPENMETADATA_AUTH_ENABLE_SELF_SIGNUP:-true}
-      RSA_PUBLIC_KEY_FILE_PATH: ${OPENMETADATA_RSA_PUBLIC_KEY_FILE_PATH:-./conf/public_key.der}
-      RSA_PRIVATE_KEY_FILE_PATH: ${OPENMETADATA_RSA_PRIVATE_KEY_FILE_PATH:-./conf/private_key.der}
-      JWT_ISSUER: ${OPENMETADATA_JWT_ISSUER:-open-metadata.org}
-      JWT_KEY_ID: ${OPENMETADATA_JWT_KEY_ID:-Gb389a-9f76-gdjs-a92j-0242bk94356}
-      DB_DRIVER_CLASS: ${OPENMETADATA_DB_DRIVER_CLASS:-com.mysql.cj.jdbc.Driver}
-      DB_SCHEME: ${OPENMETADATA_DB_SCHEME:-mysql}
-      DB_PARAMS: ${OPENMETADATA_DB_PARAMS:-allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC}
-      DB_USER: ${OPENMETADATA_DB_USER:-openmetadata_user}
-      DB_USER_PASSWORD: ${OPENMETADATA_DB_PASSWORD:-openmetadata_password}
-      DB_HOST: ${OPENMETADATA_DB_HOST:-openmetadata-mysql}
-      DB_PORT: ${OPENMETADATA_DB_PORT:-3306}
-      OM_DATABASE: ${OPENMETADATA_DB_NAME:-openmetadata_db}
-      ELASTICSEARCH_HOST: ${OPENMETADATA_ES_HOST:-openmetadata-elasticsearch}
-      ELASTICSEARCH_PORT: ${OPENMETADATA_ES_PORT:-9200}
-      ELASTICSEARCH_SCHEME: ${OPENMETADATA_ES_SCHEME:-http}
-      SEARCH_TYPE: ${OPENMETADATA_SEARCH_TYPE:-elasticsearch}
-      PIPELINE_SERVICE_CLIENT_ENABLED: ${OPENMETADATA_PIPELINE_CLIENT_ENABLED:-false}
-    ports:
-    - ${OPENMETADATA_PORT:-8585}:8585
-    healthcheck:
-      test:
-      - CMD
-      - wget
-      - -q
-      - --spider
-      - http://localhost:8586/healthcheck
-      interval: 15s
-      timeout: 10s
-      retries: 10
-    depends_on:
-      openmetadata-mysql:
-        condition: service_healthy
-      openmetadata-elasticsearch:
-        condition: service_healthy
-      openmetadata-setup:
-        condition: service_completed_successfully
-  postgres-exporter:
-    image: quay.io/prometheuscommunity/postgres-exporter:v0.15.0
-    profiles:
-    - observability
-    restart: unless-stopped
-    labels:
-      phlo.metrics.enabled: 'true'
-      phlo.metrics.port: postgres-exporter:9187
-      phlo.metrics.path: /metrics
-    environment:
-      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-phlo}:${POSTGRES_PASSWORD:-phlo}@postgres:5432/${POSTGRES_DB:-phlo}?sslmode=disable
-    ports:
-    - ${POSTGRES_EXPORTER_PORT:-9187}:9187
-    healthcheck:
-      test:
-      - CMD
-      - wget
-      - --quiet
-      - --tries=1
-      - --spider
-      - http://localhost:9187/metrics
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    depends_on:
-      postgres:
-        condition: service_healthy
-  pgweb:
-    image: sosedoff/pgweb
-    restart: unless-stopped
-    labels:
-      phlo.metrics.enabled: 'false'
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-phlo}:${POSTGRES_PASSWORD:-phlo}@postgres:5432/${POSTGRES_DB:-phlo}?sslmode=disable
-    ports:
-    - ${PGWEB_PORT:-8081}:8081
-    depends_on:
-      postgres:
-        condition: service_healthy
-  hasura:
-    image: hasura/graphql-engine:${HASURA_VERSION:-v2.46.0}
-    profiles:
-    - api
-    restart: unless-stopped
-    labels:
-      phlo.metrics.enabled: 'true'
-      phlo.metrics.port: hasura:8080
-      phlo.metrics.path: /v1/metrics
-    environment:
-      HASURA_GRAPHQL_DATABASE_URL: postgresql://${POSTGRES_USER:-phlo}:${POSTGRES_PASSWORD:-phlo}@postgres:5432/${POSTGRES_DB:-phlo}
-      HASURA_GRAPHQL_ENABLE_CONSOLE: 'true'
-      HASURA_GRAPHQL_DEV_MODE: 'true'
-      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log,
-        query-log
-      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_ADMIN_SECRET:-phlo-hasura-admin-secret}
-      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: anonymous
-    ports:
-    - ${HASURA_PORT:-8082}:8080
-    healthcheck:
-      test:
-      - CMD
-      - curl
-      - -fsS
-      - http://localhost:8080/healthz
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    depends_on:
-      postgres:
         condition: service_healthy
   postgrest:
     image: postgrest/postgrest:${POSTGREST_VERSION:-v12.2.3}
@@ -606,6 +484,128 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+  pgweb:
+    image: sosedoff/pgweb
+    restart: unless-stopped
+    labels:
+      phlo.metrics.enabled: 'false'
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-phlo}:${POSTGRES_PASSWORD:-phlo}@postgres:5432/${POSTGRES_DB:-phlo}?sslmode=disable
+    ports:
+    - ${PGWEB_PORT:-8081}:8081
+    depends_on:
+      postgres:
+        condition: service_healthy
+  postgres-exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.15.0
+    profiles:
+    - observability
+    restart: unless-stopped
+    labels:
+      phlo.metrics.enabled: 'true'
+      phlo.metrics.port: postgres-exporter:9187
+      phlo.metrics.path: /metrics
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-phlo}:${POSTGRES_PASSWORD:-phlo}@postgres:5432/${POSTGRES_DB:-phlo}?sslmode=disable
+    ports:
+    - ${POSTGRES_EXPORTER_PORT:-9187}:9187
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - --quiet
+      - --tries=1
+      - --spider
+      - http://localhost:9187/metrics
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+  hasura:
+    image: hasura/graphql-engine:${HASURA_VERSION:-v2.46.0}
+    profiles:
+    - api
+    restart: unless-stopped
+    labels:
+      phlo.metrics.enabled: 'true'
+      phlo.metrics.port: hasura:8080
+      phlo.metrics.path: /v1/metrics
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgresql://${POSTGRES_USER:-phlo}:${POSTGRES_PASSWORD:-phlo}@postgres:5432/${POSTGRES_DB:-phlo}
+      HASURA_GRAPHQL_ENABLE_CONSOLE: 'true'
+      HASURA_GRAPHQL_DEV_MODE: 'true'
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log,
+        query-log
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_ADMIN_SECRET:-phlo-hasura-admin-secret}
+      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: anonymous
+    ports:
+    - ${HASURA_PORT:-8082}:8080
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - -fsS
+      - http://localhost:8080/healthz
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+  openmetadata:
+    image: docker.getcollate.io/openmetadata/server:${OPENMETADATA_VERSION:-1.9.7}
+    profiles:
+    - openmetadata
+    restart: unless-stopped
+    labels:
+      phlo.metrics.enabled: 'false'
+    environment:
+      OPENMETADATA_CLUSTER_NAME: ${OPENMETADATA_CLUSTER_NAME:-openmetadata}
+      SERVER_PORT: ${OPENMETADATA_PORT:-8585}
+      SERVER_ADMIN_PORT: ${OPENMETADATA_ADMIN_PORT:-8586}
+      LOG_LEVEL: ${OPENMETADATA_LOG_LEVEL:-INFO}
+      OPENMETADATA_HEAP_OPTS: ${OPENMETADATA_HEAP_OPTS:--Xmx384m -Xms384m}
+      AUTHENTICATION_PROVIDER: ${OPENMETADATA_AUTH_PROVIDER:-basic}
+      AUTHENTICATION_RESPONSE_TYPE: ${OPENMETADATA_AUTH_RESPONSE_TYPE:-id_token}
+      AUTHENTICATION_ENABLE_SELF_SIGNUP: ${OPENMETADATA_AUTH_ENABLE_SELF_SIGNUP:-true}
+      RSA_PUBLIC_KEY_FILE_PATH: ${OPENMETADATA_RSA_PUBLIC_KEY_FILE_PATH:-./conf/public_key.der}
+      RSA_PRIVATE_KEY_FILE_PATH: ${OPENMETADATA_RSA_PRIVATE_KEY_FILE_PATH:-./conf/private_key.der}
+      JWT_ISSUER: ${OPENMETADATA_JWT_ISSUER:-open-metadata.org}
+      JWT_KEY_ID: ${OPENMETADATA_JWT_KEY_ID:-Gb389a-9f76-gdjs-a92j-0242bk94356}
+      DB_DRIVER_CLASS: ${OPENMETADATA_DB_DRIVER_CLASS:-com.mysql.cj.jdbc.Driver}
+      DB_SCHEME: ${OPENMETADATA_DB_SCHEME:-mysql}
+      DB_PARAMS: ${OPENMETADATA_DB_PARAMS:-allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC}
+      DB_USER: ${OPENMETADATA_DB_USER:-openmetadata_user}
+      DB_USER_PASSWORD: ${OPENMETADATA_DB_PASSWORD:-openmetadata_password}
+      DB_HOST: ${OPENMETADATA_DB_HOST:-openmetadata-mysql}
+      DB_PORT: ${OPENMETADATA_DB_PORT:-3306}
+      OM_DATABASE: ${OPENMETADATA_DB_NAME:-openmetadata_db}
+      ELASTICSEARCH_HOST: ${OPENMETADATA_ES_HOST:-openmetadata-elasticsearch}
+      ELASTICSEARCH_PORT: ${OPENMETADATA_ES_PORT:-9200}
+      ELASTICSEARCH_SCHEME: ${OPENMETADATA_ES_SCHEME:-http}
+      SEARCH_TYPE: ${OPENMETADATA_SEARCH_TYPE:-elasticsearch}
+      PIPELINE_SERVICE_CLIENT_ENABLED: ${OPENMETADATA_PIPELINE_CLIENT_ENABLED:-false}
+    ports:
+    - ${OPENMETADATA_PORT:-8585}:8585
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - -q
+      - --spider
+      - http://localhost:8586/healthcheck
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    depends_on:
+      openmetadata-mysql:
+        condition: service_healthy
+      openmetadata-elasticsearch:
+        condition: service_healthy
+      openmetadata-setup:
+        condition: service_completed_successfully
   trino:
     image: trinodb/trino:${TRINO_VERSION:-467}
     restart: unless-stopped
@@ -628,9 +628,7 @@ services:
     ports:
     - ${TRINO_PORT:-8080}:8080
     volumes:
-    - ./trino/jvm.config:/etc/trino/jvm.config:ro
-    - ./trino/config.properties:/etc/trino/config.properties:ro
-    - ./trino/catalog:/etc/trino/catalog:ro
+    - ./trino:/etc/trino:ro
     healthcheck:
       test:
       - CMD-SHELL
@@ -645,6 +643,43 @@ services:
       nessie:
         condition: service_healthy
       minio:
+        condition: service_healthy
+  superset:
+    image: apache/superset:${SUPERSET_VERSION:-4.0.0}
+    restart: unless-stopped
+    user: '0'
+    labels:
+      phlo.metrics.enabled: 'false'
+      traefik.enable: 'true'
+      traefik.http.routers.superset.rule: Host(`superset.${TRAEFIK_DOMAIN:-phlo.localhost}`)
+      traefik.http.routers.superset.entrypoints: web
+      traefik.http.services.superset.loadbalancer.server.port: '8088'
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-phlo-superset-secret-change-me}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-phlo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-phlo}
+      POSTGRES_DB: ${POSTGRES_DB:-phlo}
+      SUPERSET_ADMIN_USER: ${SUPERSET_ADMIN_USER:-admin}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-admin}
+      SUPERSET_ADMIN_EMAIL: ${SUPERSET_ADMIN_EMAIL:-admin@example.com}
+    ports:
+    - ${SUPERSET_PORT:-8088}:8088
+    volumes:
+    - superset-home:/app/superset_home
+    command: '/bin/sh -c " mkdir -p /app/superset_home && chown -R superset:superset
+      /app/superset_home && su superset -s /bin/sh -c '' superset db upgrade && superset
+      fab create-admin --username $${SUPERSET_ADMIN_USER} --firstname Admin --lastname
+      User --email $${SUPERSET_ADMIN_EMAIL} --password $${SUPERSET_ADMIN_PASSWORD}
+      || true && superset init && superset run -h 0.0.0.0 -p 8088 --with-threads ''
+      "
+
+      '
+    depends_on:
+      postgres:
+        condition: service_healthy
+      trino:
         condition: service_healthy
   dagster:
     build:
@@ -666,8 +701,8 @@ services:
       PYTHONPATH: /opt/dagster:/app
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minio}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minio123}
-      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minio}
-      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minio123}
+      AWS_ACCESS_KEY_ID: ${DAGSTER_MINIO_ACCESS_KEY:-${MINIO_ROOT_USER:-minio}}
+      AWS_SECRET_ACCESS_KEY: ${DAGSTER_MINIO_SECRET_KEY:-${MINIO_ROOT_PASSWORD:-minio123}}
       AWS_REGION: us-east-1
       AWS_S3_ENDPOINT: http://minio:9000
       AWS_S3_USE_SSL: 'false'
@@ -675,14 +710,16 @@ services:
       NESSIE_HOST: nessie
       NESSIE_PORT: 19120
       TRINO_HOST: trino
+      TRINO_USER: ${DAGSTER_TRINO_USER:-phlo-dagster}
+      TRINO_ROLE: ${DAGSTER_TRINO_ROLE:-}
       TRINO_PORT: 8080
       TRINO_CATALOG: iceberg
       ICEBERG_WAREHOUSE_PATH: s3://lake/warehouse
       ICEBERG_STAGING_PATH: s3://lake/stage
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      POSTGRES_USER: ${POSTGRES_USER:-phlo}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-phlo}
+      POSTGRES_USER: ${DAGSTER_POSTGRES_USER:-${POSTGRES_USER:-phlo}}
+      POSTGRES_PASSWORD: ${DAGSTER_POSTGRES_PASSWORD:-${POSTGRES_PASSWORD:-phlo}}
       POSTGRES_DB: ${POSTGRES_DB:-phlo}
       WORKFLOWS_PATH: /app/workflows
       DBT_PROJECT_DIR: /app/workflows/transforms/dbt
@@ -717,43 +754,6 @@ services:
       minio:
         condition: service_healthy
       nessie:
-        condition: service_healthy
-      trino:
-        condition: service_healthy
-  superset:
-    image: apache/superset:${SUPERSET_VERSION:-4.0.0}
-    restart: unless-stopped
-    user: '0'
-    labels:
-      phlo.metrics.enabled: 'false'
-      traefik.enable: 'true'
-      traefik.http.routers.superset.rule: Host(`superset.${TRAEFIK_DOMAIN:-phlo.localhost}`)
-      traefik.http.routers.superset.entrypoints: web
-      traefik.http.services.superset.loadbalancer.server.port: '8088'
-    environment:
-      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-phlo-superset-secret-change-me}
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: ${POSTGRES_USER:-phlo}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-phlo}
-      POSTGRES_DB: ${POSTGRES_DB:-phlo}
-      SUPERSET_ADMIN_USER: ${SUPERSET_ADMIN_USER:-admin}
-      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-admin}
-      SUPERSET_ADMIN_EMAIL: ${SUPERSET_ADMIN_EMAIL:-admin@example.com}
-    ports:
-    - ${SUPERSET_PORT:-8088}:8088
-    volumes:
-    - ./volumes/superset:/app/superset_home
-    command: '/bin/sh -c " mkdir -p /app/superset_home && chown -R superset:superset
-      /app/superset_home && su superset -s /bin/sh -c '' superset db upgrade && superset
-      fab create-admin --username $${SUPERSET_ADMIN_USER} --firstname Admin --lastname
-      User --email $${SUPERSET_ADMIN_EMAIL} --password $${SUPERSET_ADMIN_PASSWORD}
-      || true && superset init && superset run -h 0.0.0.0 -p 8088 --with-threads ''
-      "
-
-      '
-    depends_on:
-      postgres:
         condition: service_healthy
       trino:
         condition: service_healthy
@@ -812,3 +812,11 @@ services:
     depends_on:
       dagster:
         condition: service_started
+volumes:
+  clickstack-data: {}
+  grafana-data: {}
+  loki-data: {}
+  minio-data: {}
+  postgres-data: {}
+  prometheus-data: {}
+  superset-home: {}

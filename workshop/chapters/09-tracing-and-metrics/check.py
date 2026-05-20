@@ -2,7 +2,6 @@
 """Chapter 09 checkpoint: verify observability stack is running."""
 
 import sys
-from socket import create_connection
 
 import httpx
 
@@ -21,15 +20,17 @@ def check_clickstack() -> bool:
         return False
 
 
-def check_otel_collector() -> bool:
-    """Check OTEL collector health endpoint."""
+def check_clickhouse_http() -> bool:
+    """Check ClickStack's ClickHouse HTTP endpoint."""
     try:
-        with create_connection(("localhost", 4318), timeout=5):
-            pass
-        print("  \033[32m✓\033[0m OTEL collector is accepting connections on localhost:4318")
-        return True
+        resp = httpx.get("http://localhost:18123/ping", timeout=10)
+        if resp.status_code == 200 and "Ok" in resp.text:
+            print("  \033[32m✓\033[0m ClickHouse HTTP is reachable at http://localhost:18123")
+            return True
+        print(f"  \033[31m✗\033[0m ClickHouse HTTP returned status {resp.status_code}")
+        return False
     except Exception as e:
-        print(f"  \033[31m✗\033[0m OTEL collector unreachable: {e}")
+        print(f"  \033[31m✗\033[0m ClickHouse HTTP unreachable: {e}")
         return False
 
 
@@ -37,7 +38,7 @@ def main() -> int:
     print("Chapter 09 — Tracing & Metrics\n")
     results = [
         check_clickstack(),
-        check_otel_collector(),
+        check_clickhouse_http(),
     ]
     print()
     if all(results):

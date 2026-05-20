@@ -5,7 +5,7 @@
 ## What You'll Learn
 
 - OpenTelemetry (OTEL) instrumentation in Phlo
-- OTLP export configuration
+- Phlo observability service configuration
 - Viewing traces and spans in ClickStack
 - Understanding pipeline metrics
 
@@ -24,27 +24,26 @@
 phlo services start --profile observability
 ```
 
-This starts **ClickStack** (a ClickHouse-backed, all-in-one observability UI) and
-the **OTEL collector**. ClickStack bundles trace storage, metric storage, and a
-query UI into a single service — no need to wire up Grafana, Prometheus, and Loki
-separately.
+This starts **ClickStack**, a ClickHouse-backed observability UI. The service
+publishes its UI on `localhost:8123` and its ClickHouse HTTP endpoint on
+`localhost:18123`.
 
 > **Note:** If you only need standalone ClickHouse without the bundled UI, the
 > `phlo-clickhouse` package is available as an alternative.
 
-### Step 2: Set OTEL Environment Variables
+### Step 2: Confirm the Observability Ports
 
-Add the following to `.phlo/.env.local`:
+The workshop config sets these ports in `phlo.yaml`:
 
 ```
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
-OTEL_SERVICE_NAME=workshop
+CLICKSTACK_PORT=8123
+CLICKSTACK_HTTP_PORT=18123
 ```
 
 | Variable | Purpose |
 |---|---|
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Where the SDK sends traces and metrics via OTLP/HTTP. The collector listens on port **4318**. |
-| `OTEL_SERVICE_NAME` | Labels every span and metric so you can filter by service in the UI. |
+| `CLICKSTACK_PORT` | ClickStack UI port. |
+| `CLICKSTACK_HTTP_PORT` | ClickHouse HTTP query port used by Phlo observability endpoints. |
 
 ### Step 3: Materialize an Asset
 
@@ -56,8 +55,7 @@ phlo materialize --select dlt_pokemon
 
 Or use the Dagster UI — see [Chapter 1 Step 3](../01-ingest-pokemon/#step-3-materialize) for detailed UI instructions.
 
-This time the pipeline sends traces and metrics to the OTEL collector as it runs.
-Each stage — DLT fetch, Iceberg write, validation — emits its own span.
+This gives the observability stack fresh pipeline activity to inspect.
 
 ### Step 4: Explore Traces in ClickStack
 
@@ -81,7 +79,7 @@ Switch to the **Metrics** view in ClickStack. Look for:
 python chapters/09-tracing-and-metrics/check.py
 ```
 
-The script verifies that ClickStack and the OTEL collector are reachable.
+The script verifies that the ClickStack UI and ClickHouse HTTP endpoint are reachable.
 
 ## Next
 

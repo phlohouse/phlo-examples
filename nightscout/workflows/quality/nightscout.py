@@ -5,7 +5,7 @@ glucose readings conform to business rules, data types, and expected ranges.
 
 This module demonstrates two approaches to quality checks:
 1. Traditional @asset_check with Pandera schemas (nightscout_glucose_quality_check)
-2. @phlo_quality decorator for declarative checks (glucose_readings_quality)
+2. @phlo_pandera decorator for declarative checks (glucose_readings_quality)
 """
 
 from __future__ import annotations
@@ -17,9 +17,9 @@ from phlo_trino.resource import TrinoResource
 
 from workflows.schemas.nightscout import FactDailyGlucoseMetrics, FactGlucoseReadings
 
-# Import quality check types for @phlo_quality decorator
+# Import quality check types for @phlo_pandera decorator
 try:
-    from phlo_quality import FreshnessCheck, NullCheck, RangeCheck, phlo_quality
+    from phlo_pandera import FreshnessCheck, NullCheck, RangeCheck, phlo_pandera
 
     PHLO_QUALITY_AVAILABLE = True
 except ImportError:
@@ -27,12 +27,12 @@ except ImportError:
 
 
 # ---------------------------------------------------------------------------
-# @phlo_quality decorator approach (declarative, reduces boilerplate by 70-80%)
+# @phlo_pandera decorator approach (declarative, reduces boilerplate by 70-80%)
 # ---------------------------------------------------------------------------
 if PHLO_QUALITY_AVAILABLE:
-    from phlo_quality import CountCheck, UniqueCheck
+    from phlo_pandera import CountCheck, UniqueCheck
 
-    @phlo_quality(
+    @phlo_pandera(
         table="silver.fct_glucose_readings",
         checks=[
             NullCheck(columns=["entry_id", "glucose_mg_dl", "reading_timestamp"]),
@@ -47,10 +47,10 @@ if PHLO_QUALITY_AVAILABLE:
         partition_column="reading_date",
     )
     def glucose_readings_quality():
-        """Declarative quality checks for glucose readings using @phlo_quality."""
+        """Declarative quality checks for glucose readings using @phlo_pandera."""
         pass
 
-    @phlo_quality(
+    @phlo_pandera(
         table="gold.fct_daily_glucose_metrics",
         checks=[
             NullCheck(columns=["reading_date", "reading_count", "avg_glucose_mg_dl"]),
@@ -67,7 +67,7 @@ if PHLO_QUALITY_AVAILABLE:
         """Declarative quality checks for daily glucose metrics."""
         pass
 
-    @phlo_quality(
+    @phlo_pandera(
         table="postgres.marts.mrt_glucose_readings",
         checks=[
             NullCheck(columns=["entry_id", "glucose_mg_dl", "reading_timestamp", "reading_date"]),
@@ -83,7 +83,7 @@ if PHLO_QUALITY_AVAILABLE:
         """Declarative quality checks for the curated glucose readings mart."""
         pass
 
-    @phlo_quality(
+    @phlo_pandera(
         table="postgres.marts.mrt_glucose_overview",
         checks=[
             NullCheck(columns=["reading_date", "reading_count", "time_in_range_pct"]),
@@ -99,7 +99,7 @@ if PHLO_QUALITY_AVAILABLE:
         """Declarative quality checks for the glucose overview mart."""
         pass
 
-    @phlo_quality(
+    @phlo_pandera(
         table="postgres.marts.mrt_glucose_hourly_patterns",
         checks=[
             NullCheck(columns=["hour_of_day", "reading_count"]),
