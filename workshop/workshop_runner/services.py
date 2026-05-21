@@ -107,6 +107,7 @@ class ServiceManager:
                 timeout=300,
                 error_message="services init failed",
             )
+            self._ensure_dagster_workshop_packages()
             self.initialized = True
         else:
             self._ensure_rendered(profiles=profiles, services=services)
@@ -151,6 +152,28 @@ class ServiceManager:
             self._sleep(PROFILE_SERVICE_STARTUP_SECONDS, reason=f"service {service}")
             self._wait_for_service_readiness(service)
             self._wait_for_core_readiness()
+
+    def _ensure_dagster_workshop_packages(self) -> None:
+        """Install workshop-only plugin packages into the generated Dagster image."""
+        dockerfile = self.workshop_dir / ".phlo" / "dagster" / "Dockerfile"
+        if not dockerfile.exists():
+            return
+
+        marker = "# Install workshop chapter plugin packages"
+        content = dockerfile.read_text()
+        if marker in content:
+            return
+
+        install_line = (
+            f'{marker}\n'
+            'RUN uv pip install --system "phlo-sling==0.5.0"\n'
+        )
+        anchor = "# Keep entrypoint outside /opt/dagster so dev volume mounts never hide it."
+        if anchor in content:
+            content = content.replace(anchor, f"{install_line}\n{anchor}", 1)
+        else:
+            content = f"{content.rstrip()}\n\n{install_line}"
+        dockerfile.write_text(content)
 
     def _ensure_rendered(self, *, profiles: tuple[str, ...], services: tuple[str, ...]) -> None:
         """Ensure later chapter profiles/services exist in the rendered compose file."""

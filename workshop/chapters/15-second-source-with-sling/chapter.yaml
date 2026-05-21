@@ -1,5 +1,5 @@
 title: Second Source with Sling
 act: 4
 commands:
-  - phlo materialize dlt_pokemon_cards -p 2025-01-01
+  - phlo materialize sling_pokemon_cards -p 2025-01-01 --no-contract-refresh
   - phlo dbt run --select fct_card_values

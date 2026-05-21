@@ -73,7 +73,7 @@ Compare with `@phlo_ingestion` from Chapter 01: Sling handles file-level replica
 Run the Sling asset:
 
 ```bash
-phlo materialize dlt_pokemon_cards -p 2025-01-01
+phlo materialize sling_pokemon_cards -p 2025-01-01 --no-contract-refresh
 ```
 
 Or use the Dagster UI — see [Chapter 1 Step 3](../01-ingest-pokemon/#step-3-materialize) for detailed UI instructions.
