@@ -19,7 +19,7 @@ This example demonstrates real-world data engineering patterns:
 
 ```bash
 cd phlo-examples/github
-phlo services init
+phlo services init --no-dev
 phlo services start
 ```
 

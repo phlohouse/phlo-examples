@@ -53,6 +53,7 @@ def github_api(
         resources=[
             {
                 "name": resource,
+                "max_table_nesting": 0,
                 "endpoint": {
                     "path": final_path,
                     "params": params or {},

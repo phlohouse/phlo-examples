@@ -5,11 +5,11 @@ Ingests CGM (Continuous Glucose Monitor) data from Nightscout API into an Iceber
 
 ## Quick Start
 
-### Standard Mode (installs phlo from GitHub)
+### Standard Mode
 
 ```bash
 cd phlo-examples/nightscout
-phlo services init
+phlo services init --no-dev
 phlo services start
 ```
 

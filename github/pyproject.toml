@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Phlo GitHub stats demo"
 requires-python = ">=3.11"
 dependencies = [
-    "phlo",
+    "phlo==0.10.0",
     "phlo-core-plugins",
     "phlo-dagster",
     "phlo-dlt",
@@ -23,22 +23,6 @@ dev = [
     "pytest>=8.0",
     "ruff",
 ]
-
-# For local development within the monorepo
-[tool.uv.sources]
-phlo = { path = "../../phlo", editable = true }
-phlo-core-plugins = { path = "../../phlo/packages/phlo-core-plugins", editable = true }
-phlo-iceberg = { path = "../../phlo/packages/phlo-iceberg", editable = true }
-phlo-dlt = { path = "../../phlo/packages/phlo-dlt", editable = true }
-phlo-dbt = { path = "../../phlo/packages/phlo-dbt", editable = true }
-phlo-dagster = { path = "../../phlo/packages/phlo-dagster", editable = true }
-phlo-postgres = { path = "../../phlo/packages/phlo-postgres", editable = true }
-phlo-minio = { path = "../../phlo/packages/phlo-minio", editable = true }
-phlo-nessie = { path = "../../phlo/packages/phlo-nessie", editable = true }
-phlo-trino = { path = "../../phlo/packages/phlo-trino", editable = true }
-phlo-openmetadata = { path = "../../phlo/packages/phlo-openmetadata", editable = true }
-phlo-pandera = { path = "../../phlo/packages/phlo-pandera", editable = true }
-phlo-testing = { path = "../../phlo/packages/phlo-testing", editable = true }
 
 [tool.ruff]
 line-length = 100

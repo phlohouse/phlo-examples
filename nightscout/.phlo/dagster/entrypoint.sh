@@ -19,7 +19,7 @@ if [ "$PHLO_DEV_MODE" = "true" ] && [ -f /opt/phlo-dev/pyproject.toml ]; then
 fi
 
 # In decoupled mode, runtime plugins live in /opt/phlo-dev/packages.
-# Install local workspace packages so project workflows can import plugin modules.
+# Install every local workspace package so user workflows can import plugin modules.
 if [ "$PHLO_DEV_MODE" = "true" ] && [ -d /opt/phlo-dev/packages ]; then
     echo "Dev mode: installing local workspace packages..."
     for pkg_dir in /opt/phlo-dev/packages/*; do
@@ -28,6 +28,7 @@ if [ "$PHLO_DEV_MODE" = "true" ] && [ -d /opt/phlo-dev/packages ]; then
         fi
         uv pip install --system -e "$pkg_dir" || echo "Warning: Could not install $pkg_dir"
     done
+    # Ensure core runtime plugins required by example projects are present.
     for required_pkg in \
         phlo-core-plugins \
         phlo-dagster \
@@ -49,6 +50,37 @@ if [ "$PHLO_DEV_MODE" = "true" ] && [ -d /opt/phlo-dev/packages ]; then
     uv pip install --system dagster-dbt || echo "Warning: Could not install dagster-dbt"
     echo "Dev mode: local workspace packages installed"
 fi
+
+# Optionally install extra local packages in dev mode
+if [ "$PHLO_DEV_MODE" = "true" ] && [ -n "$PHLO_DEV_EXTRA_PACKAGES" ]; then
+    echo "Dev mode: installing extra packages: $PHLO_DEV_EXTRA_PACKAGES"
+    for pkg in ${PHLO_DEV_EXTRA_PACKAGES//,/ }; do
+        if [ -z "$pkg" ]; then
+            continue
+        fi
+        local_path="/opt/phlo-dev/packages/$pkg"
+        if [ -d "$local_path" ]; then
+            uv pip install --system -e "$local_path" || echo "Warning: Could not install $pkg"
+        else
+            uv pip install --system "$pkg" || echo "Warning: Could not install $pkg"
+        fi
+    done
+fi
+
+# Create sitecustomize.py to suppress Dagster SupersessionWarning at Python startup
+# This runs before any Python script and filters out deprecated CLI warnings
+SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+cat > "${SITE_PACKAGES}/sitecustomize.py" << 'EOF'
+# Phlo: Suppress Dagster deprecation warnings for deprecated CLI commands
+import warnings
+try:
+    from dagster import SupersessionWarning
+    warnings.filterwarnings("ignore", category=SupersessionWarning)
+except ImportError:
+    pass
+EOF
+
+touch /tmp/phlo-dagster-ready
 
 # Execute the main command
 exec "$@"

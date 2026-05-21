@@ -68,32 +68,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-  alloy:
-    image: grafana/alloy:v1.4.2
-    profiles:
-    - observability
-    restart: unless-stopped
-    labels:
-      phlo.metrics.enabled: 'true'
-      phlo.metrics.port: alloy:12345
-      phlo.metrics.path: /metrics
-    ports:
-    - ${ALLOY_PORT:-12345}:12345
-    volumes:
-    - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
-    - /var/run/docker.sock:/var/run/docker.sock:ro
-    command:
-    - run
-    - --server.http.listen-addr=0.0.0.0:12345
-    - /etc/alloy/config.alloy
-    healthcheck:
-      test:
-      - CMD
-      - pgrep
-      - alloy
-      interval: 10s
-      timeout: 5s
-      retries: 5
   clickstack:
     image: ${CLICKSTACK_IMAGE:-docker.hyperdx.io/hyperdx/hyperdx-all-in-one}
     profiles:
@@ -119,97 +93,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-  prometheus:
-    image: prom/prometheus:${PROMETHEUS_VERSION:-v3.1.0}
-    profiles:
-    - observability
-    restart: unless-stopped
-    user: '0'
-    labels:
-      phlo.metrics.enabled: 'true'
-      phlo.metrics.port: prometheus:9090
-      phlo.metrics.path: /metrics
-    ports:
-    - ${PROMETHEUS_PORT:-9090}:9090
-    volumes:
-    - ./prometheus:/etc/prometheus:ro
-    - prometheus-data:/prometheus
-    command:
-    - --config.file=/etc/prometheus/prometheus.yml
-    - --storage.tsdb.path=/prometheus
-    - --web.enable-lifecycle
-    - --storage.tsdb.retention.time=30d
-    healthcheck:
-      test:
-      - CMD
-      - wget
-      - --quiet
-      - --tries=1
-      - --spider
-      - http://localhost:9090/-/healthy
-      interval: 10s
-      timeout: 5s
-      retries: 5
-  loki:
-    image: grafana/loki:${LOKI_VERSION:-3.2.1}
-    profiles:
-    - observability
-    restart: unless-stopped
-    user: '0'
-    labels:
-      phlo.metrics.enabled: 'true'
-      phlo.metrics.port: loki:3100
-      phlo.metrics.path: /metrics
-    ports:
-    - ${LOKI_PORT:-3100}:3100
-    volumes:
-    - ./loki:/etc/loki:ro
-    - loki-data:/loki
-    command: -config.file=/etc/loki/loki-config.yml
-    healthcheck:
-      test:
-      - CMD
-      - wget
-      - --quiet
-      - --tries=1
-      - --spider
-      - http://localhost:3100/ready
-      interval: 10s
-      timeout: 5s
-      retries: 5
-  phlo-api:
-    build:
-      context: ../../../phlo/packages/phlo-api/src/phlo_api
-      dockerfile: Dockerfile
-      args:
-        PHLO_VERSION: ${PHLO_VERSION:-}
-        PHLO_API_VERSION: ${PHLO_API_VERSION:-}
-    profiles:
-    - api
-    restart: unless-stopped
-    labels:
-      phlo.metrics.enabled: 'true'
-      phlo.metrics.port: phlo-api:4000
-      phlo.metrics.path: /api/maintenance/metrics
-    environment:
-      HOST: 0.0.0.0
-      PORT: 4000
-      PYTHONUNBUFFERED: '1'
-      CLICKSTACK_QUERY_URL: ${CLICKSTACK_QUERY_URL:-}
-      CLICKSTACK_QUERY_USER: ${CLICKSTACK_QUERY_USER:-}
-      CLICKSTACK_QUERY_PASSWORD: ${CLICKSTACK_QUERY_PASSWORD:-}
-    ports:
-    - ${PHLO_API_PORT:-4000}:4000
-    healthcheck:
-      test:
-      - CMD
-      - python
-      - -c
-      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:4000/health')
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
   openmetadata-mysql:
     image: docker.getcollate.io/openmetadata/db:${OPENMETADATA_VERSION:-1.9.7}
     profiles:
@@ -250,6 +133,39 @@ services:
       timeout: 10s
       retries: 10
       start_period: 120s
+  phlo-api:
+    build:
+      context: ../.venv/lib/python3.11/site-packages/phlo_api
+      dockerfile: Dockerfile
+      args:
+        PHLO_VERSION: ${PHLO_VERSION:-}
+        PHLO_API_VERSION: ${PHLO_API_VERSION:-}
+    profiles:
+    - api
+    restart: unless-stopped
+    labels:
+      phlo.metrics.enabled: 'true'
+      phlo.metrics.port: phlo-api:4000
+      phlo.metrics.path: /api/maintenance/metrics
+    environment:
+      HOST: 0.0.0.0
+      PORT: 4000
+      PYTHONUNBUFFERED: '1'
+      CLICKSTACK_QUERY_URL: ${CLICKSTACK_QUERY_URL:-}
+      CLICKSTACK_QUERY_USER: ${CLICKSTACK_QUERY_USER:-}
+      CLICKSTACK_QUERY_PASSWORD: ${CLICKSTACK_QUERY_PASSWORD:-}
+    ports:
+    - ${PHLO_API_PORT:-4000}:4000
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://127.0.0.1:4000/health')
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
   traefik:
     image: traefik:v3.3
     profiles:
@@ -269,6 +185,90 @@ services:
     - --providers.docker.exposedbydefault=false
     - --entrypoints.web.address=:80
     - --api.dashboard=true
+  loki:
+    image: grafana/loki:${LOKI_VERSION:-3.2.1}
+    profiles:
+    - observability
+    restart: unless-stopped
+    user: '0'
+    labels:
+      phlo.metrics.enabled: 'true'
+      phlo.metrics.port: loki:3100
+      phlo.metrics.path: /metrics
+    ports:
+    - ${LOKI_PORT:-3100}:3100
+    volumes:
+    - ./loki:/etc/loki:ro
+    - loki-data:/loki
+    command: -config.file=/etc/loki/loki-config.yml
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - --quiet
+      - --tries=1
+      - --spider
+      - http://localhost:3100/ready
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION:-v3.1.0}
+    profiles:
+    - observability
+    restart: unless-stopped
+    user: '0'
+    labels:
+      phlo.metrics.enabled: 'true'
+      phlo.metrics.port: prometheus:9090
+      phlo.metrics.path: /metrics
+    ports:
+    - ${PROMETHEUS_PORT:-9090}:9090
+    volumes:
+    - ./prometheus:/etc/prometheus:ro
+    - prometheus-data:/prometheus
+    command:
+    - --config.file=/etc/prometheus/prometheus.yml
+    - --storage.tsdb.path=/prometheus
+    - --web.enable-lifecycle
+    - --storage.tsdb.retention.time=30d
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - --quiet
+      - --tries=1
+      - --spider
+      - http://localhost:9090/-/healthy
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  alloy:
+    image: grafana/alloy:v1.4.2
+    profiles:
+    - observability
+    restart: unless-stopped
+    labels:
+      phlo.metrics.enabled: 'true'
+      phlo.metrics.port: alloy:12345
+      phlo.metrics.path: /metrics
+    ports:
+    - ${ALLOY_PORT:-12345}:12345
+    volumes:
+    - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+    - /var/run/docker.sock:/var/run/docker.sock:ro
+    command:
+    - run
+    - --server.http.listen-addr=0.0.0.0:12345
+    - /etc/alloy/config.alloy
+    healthcheck:
+      test:
+      - CMD
+      - pgrep
+      - alloy
+      interval: 10s
+      timeout: 5s
+      retries: 5
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -313,6 +313,69 @@ services:
     depends_on:
       minio:
         condition: service_healthy
+  openmetadata-setup:
+    image: docker.getcollate.io/openmetadata/server:${OPENMETADATA_VERSION:-1.9.7}
+    profiles:
+    - openmetadata
+    restart: 'no'
+    environment:
+      OPENMETADATA_CLUSTER_NAME: ${OPENMETADATA_CLUSTER_NAME:-openmetadata}
+      SERVER_PORT: ${OPENMETADATA_PORT:-8585}
+      SERVER_ADMIN_PORT: ${OPENMETADATA_ADMIN_PORT:-8586}
+      LOG_LEVEL: ${OPENMETADATA_LOG_LEVEL:-INFO}
+      DB_DRIVER_CLASS: ${OPENMETADATA_DB_DRIVER_CLASS:-com.mysql.cj.jdbc.Driver}
+      DB_SCHEME: ${OPENMETADATA_DB_SCHEME:-mysql}
+      DB_PARAMS: ${OPENMETADATA_DB_PARAMS:-allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC}
+      DB_USER: ${OPENMETADATA_DB_USER:-openmetadata_user}
+      DB_USER_PASSWORD: ${OPENMETADATA_DB_PASSWORD:-openmetadata_password}
+      DB_HOST: ${OPENMETADATA_DB_HOST:-openmetadata-mysql}
+      DB_PORT: ${OPENMETADATA_DB_PORT:-3306}
+      OM_DATABASE: ${OPENMETADATA_DB_NAME:-openmetadata_db}
+      ELASTICSEARCH_HOST: ${OPENMETADATA_ES_HOST:-openmetadata-elasticsearch}
+      ELASTICSEARCH_PORT: ${OPENMETADATA_ES_PORT:-9200}
+      ELASTICSEARCH_SCHEME: ${OPENMETADATA_ES_SCHEME:-http}
+      SEARCH_TYPE: ${OPENMETADATA_SEARCH_TYPE:-elasticsearch}
+    command: ./bootstrap/openmetadata-ops.sh migrate
+    depends_on:
+      openmetadata-mysql:
+        condition: service_healthy
+      openmetadata-elasticsearch:
+        condition: service_healthy
+  observatory:
+    build:
+      context: ../.venv/lib/python3.11/site-packages/phlo_observatory
+      dockerfile: Dockerfile
+    profiles:
+    - api
+    restart: unless-stopped
+    labels:
+      phlo.metrics.enabled: 'false'
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+      DAGSTER_GRAPHQL_URL: http://dagster:3000/graphql
+      NESSIE_URL: http://nessie:19120/api/v2
+      TRINO_URL: http://trino:8080
+      PHLO_API_URL: http://phlo-api:4000
+      PHLO_API_BROWSER_URL: ${PHLO_API_BROWSER_URL:-http://127.0.0.1:${PHLO_API_PORT:-4000}}
+    ports:
+    - ${OBSERVATORY_PORT:-3001}:3000
+    healthcheck:
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:3000/
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      phlo-api:
+        condition: service_healthy
   grafana:
     image: grafana/grafana:${GRAFANA_VERSION:-11.3.1}
     profiles:
@@ -349,91 +412,15 @@ services:
         condition: service_healthy
       loki:
         condition: service_healthy
-  observatory:
-    build:
-      context: ../../../phlo/packages/phlo-observatory/src/phlo_observatory
-      dockerfile: Dockerfile
-    profiles:
-    - api
+  pgweb:
+    image: sosedoff/pgweb
     restart: unless-stopped
     labels:
       phlo.metrics.enabled: 'false'
     environment:
-      NODE_ENV: production
-      HOST: 0.0.0.0
-      PORT: 3000
-      DAGSTER_GRAPHQL_URL: http://dagster:3000/graphql
-      NESSIE_URL: http://nessie:19120/api/v2
-      TRINO_URL: http://trino:8080
-      PHLO_API_URL: http://phlo-api:4000
-      PHLO_API_BROWSER_URL: ${PHLO_API_BROWSER_URL:-http://127.0.0.1:${PHLO_API_PORT:-4000}}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-phlo}:${POSTGRES_PASSWORD:-phlo}@postgres:5432/${POSTGRES_DB:-phlo}?sslmode=disable
     ports:
-    - ${OBSERVATORY_PORT:-3001}:3000
-    healthcheck:
-      test:
-      - CMD
-      - wget
-      - --no-verbose
-      - --tries=1
-      - --spider
-      - http://127.0.0.1:3000/
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    depends_on:
-      phlo-api:
-        condition: service_healthy
-  openmetadata-setup:
-    image: docker.getcollate.io/openmetadata/server:${OPENMETADATA_VERSION:-1.9.7}
-    profiles:
-    - openmetadata
-    restart: 'no'
-    environment:
-      OPENMETADATA_CLUSTER_NAME: ${OPENMETADATA_CLUSTER_NAME:-openmetadata}
-      SERVER_PORT: ${OPENMETADATA_PORT:-8585}
-      SERVER_ADMIN_PORT: ${OPENMETADATA_ADMIN_PORT:-8586}
-      LOG_LEVEL: ${OPENMETADATA_LOG_LEVEL:-INFO}
-      DB_DRIVER_CLASS: ${OPENMETADATA_DB_DRIVER_CLASS:-com.mysql.cj.jdbc.Driver}
-      DB_SCHEME: ${OPENMETADATA_DB_SCHEME:-mysql}
-      DB_PARAMS: ${OPENMETADATA_DB_PARAMS:-allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC}
-      DB_USER: ${OPENMETADATA_DB_USER:-openmetadata_user}
-      DB_USER_PASSWORD: ${OPENMETADATA_DB_PASSWORD:-openmetadata_password}
-      DB_HOST: ${OPENMETADATA_DB_HOST:-openmetadata-mysql}
-      DB_PORT: ${OPENMETADATA_DB_PORT:-3306}
-      OM_DATABASE: ${OPENMETADATA_DB_NAME:-openmetadata_db}
-      ELASTICSEARCH_HOST: ${OPENMETADATA_ES_HOST:-openmetadata-elasticsearch}
-      ELASTICSEARCH_PORT: ${OPENMETADATA_ES_PORT:-9200}
-      ELASTICSEARCH_SCHEME: ${OPENMETADATA_ES_SCHEME:-http}
-      SEARCH_TYPE: ${OPENMETADATA_SEARCH_TYPE:-elasticsearch}
-    command: ./bootstrap/openmetadata-ops.sh migrate
-    depends_on:
-      openmetadata-mysql:
-        condition: service_healthy
-      openmetadata-elasticsearch:
-        condition: service_healthy
-  postgrest:
-    image: postgrest/postgrest:${POSTGREST_VERSION:-v12.2.3}
-    profiles:
-    - api
-    restart: unless-stopped
-    labels:
-      phlo.metrics.enabled: 'false'
-    ports:
-    - ${POSTGREST_PORT:-3002}:3000
-    volumes:
-    - ./postgrest/conf:/etc/postgrest:ro
-    command:
-    - /bin/postgrest
-    - /etc/postgrest/postgrest.conf
-    healthcheck:
-      test:
-      - CMD
-      - pgrep
-      - postgrest
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    - ${PGWEB_PORT:-8081}:8081
     depends_on:
       postgres:
         condition: service_healthy
@@ -484,15 +471,28 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-  pgweb:
-    image: sosedoff/pgweb
+  postgrest:
+    image: postgrest/postgrest:${POSTGREST_VERSION:-v12.2.3}
+    profiles:
+    - api
     restart: unless-stopped
     labels:
       phlo.metrics.enabled: 'false'
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-phlo}:${POSTGRES_PASSWORD:-phlo}@postgres:5432/${POSTGRES_DB:-phlo}?sslmode=disable
     ports:
-    - ${PGWEB_PORT:-8081}:8081
+    - ${POSTGREST_PORT:-3002}:3000
+    volumes:
+    - ./postgrest/conf:/etc/postgrest:ro
+    command:
+    - /bin/postgrest
+    - /etc/postgrest/postgrest.conf
+    healthcheck:
+      test:
+      - CMD
+      - pgrep
+      - postgrest
+      interval: 10s
+      timeout: 5s
+      retries: 5
     depends_on:
       postgres:
         condition: service_healthy

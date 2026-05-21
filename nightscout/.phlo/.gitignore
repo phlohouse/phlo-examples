@@ -3,7 +3,7 @@
 .env.local
 volumes/
 
-# Dagster runtime data
+# Service runtime data
 dagster/storage/
 dagster/history/
 dagster/schedules/

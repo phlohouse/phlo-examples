@@ -28,7 +28,3 @@ models:
       +schema: marts
       +tags: ["mart", "publish"]
       +materialized: table
-      +post-hook:
-        - "create schema if not exists postgres.marts"
-        - "drop table if exists postgres.marts.{{ this.identifier }}"
-        - "create table postgres.marts.{{ this.identifier }} as select * from {{ this }}"

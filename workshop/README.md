@@ -47,7 +47,7 @@ exercises.
 ```bash
 cd phlo-examples/workshop
 uv sync --all-extras
-phlo services init
+phlo services init --no-dev
 phlo services start
 ```
 
